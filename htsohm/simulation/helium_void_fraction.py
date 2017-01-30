@@ -61,7 +61,7 @@ def parse_output(output_file):
         print("\nVOID FRACTION :   %s\n" % (results['vf_helium_void_fraction']))
     return results
 
-def run(run_id, material_id):
+def run(run_id, uuid):
     """Runs void fraction simulation.
 
     Args:

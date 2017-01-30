@@ -75,7 +75,7 @@ def parse_output(output_file):
         "%s\tm^2/cm^3"   % (results['sa_volumetric_surface_area']))
     return results
 
-def run(run_id, material_id):
+def run(run_id, uuid):
     """Runs surface area simulation.
 
     Args:
