@@ -79,7 +79,7 @@ def write_seed_definition_files(run_id, number_of_atomtypes):
     run_dir = os.path.join(htsohm_dir, run_id)
     material_dir = os.path.join(run_dir, 'pseudo_materials')
     if not os.path.exists(material_dir):
-        os.mkdir(material_dir)
+        os.makedirs(material_dir, exist_ok=True)
 
     ########################################################################
     db_row = Material(run_id)
