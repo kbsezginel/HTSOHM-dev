@@ -259,7 +259,7 @@ def mutate(run_id, generation, parent):
         try:
             session.add(mutation_strength)
             session.commit()
-        except FlushError as e:
+        except (FlushError, IntegrityError) as e:
             print("Somebody beat us to saving a row with this generation. That's ok!")
             # it's ok b/c this calculation should always yield the exact same result!
     sys.stdout.flush()
