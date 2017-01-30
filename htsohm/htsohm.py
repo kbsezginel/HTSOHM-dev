@@ -6,10 +6,13 @@ import numpy as np
 from sqlalchemy.sql import func, or_
 from sqlalchemy.orm.exc import FlushError
 import sqlalchemy.exc
+from uuid import uuid4
 
 from htsohm import config
 from htsohm.db import session, Material, MutationStrength
-from htsohm.material_files import write_seed_definition_files, write_child_definition_files
+from htsohm.material_files import generate_material, mutate_material
+from htsohm.material_files import load_material_from_yaml
+from htsohm.material_files import dump_material_to_yaml
 from htsohm import simulation
 
 def materials_in_generation(run_id, generation):
@@ -139,6 +142,7 @@ def run_all_simulations(material):
     corresponding bins to row in database corresponding to the input-material.
         
     """
+
     simulations = config['material_properties']
 
     ############################################################################
@@ -207,7 +211,7 @@ def retest(m_orig, retests, tolerance):
     Updates row in database with total number of retests and results.
 
     """
-    m = m_orig.clone()
+    m = m_orig.clone(m_orig.uuid)
     print('\n\nRETEST_NUM :\t%s' % m_orig.retest_num)
     print('retests :\t%s' % retests)
     run_all_simulations(m)
@@ -267,7 +271,7 @@ def mutate(run_id, generation, parent):
         print("Mutation strength already calculated for this bin and generation.")
     else:
         print("Calculating mutation strength...")
-        mutation_strength = MutationStrength.get_prior(*mutation_strength_key).clone()
+        mutation_strength = MutationStrength.get_prior(*mutation_strength_key).clone(uuid4())
         mutation_strength.generation = generation
 
         try:
@@ -341,7 +345,8 @@ def worker_run_loop(run_id):
         while materials_in_generation(run_id, gen) < size_of_generation:
             if gen == 0:
                 print("writing new seed...")
-                material = write_seed_definition_files(run_id, config['number_of_atom_types'])
+                material = generate_material(run_id, config)
+                dump_material_to_yaml(run_id, material)
             else:
                 print("selecting a parent / running retests on parent / mutating / simulating")
                 parent_id = select_parent(run_id, max_generation=(gen - 1),
@@ -360,20 +365,29 @@ def worker_run_loop(run_id):
                 if not parent.retest_passed:
                     print("parent failed retest. restarting with parent selection.")
                     continue
-
+                
+                # mutate parent_material
                 mutation_strength = mutate(run_id, gen, parent)
-                material = write_child_definition_files(run_id, parent_id, gen, mutation_strength)
+                parent_material = load_material_from_yaml(run_id, parent.uuid)
+                material = mutate_material(parent_material,
+                        mutation_strength, config)
+                dump_material_to_yaml(run_id, material)
 
-            run_all_simulations(material)
-            session.add(material)
+            # create record, run simulations
+            material_record = Material(material.uuid, run_id)
+            material_record.generation = gen
+            if gen != 0:
+                material_record.parent_id = parent_id
+            run_all_simulations(material_record)
+            session.add(material_record)
             session.commit()
 
-            material.generation_index = material.calculate_generation_index()
-            if material.generation_index < config['children_per_generation']:
-                session.add(material)
+            material_record.generation_index = material_record.calculate_generation_index()
+            if material_record.generation_index < config['children_per_generation']:
+                session.add(material_record)
             else:
                 # delete excess rows
-                # session.delete(material)
+                session.delete(material_record)
                 pass
             session.commit()
             sys.stdout.flush()

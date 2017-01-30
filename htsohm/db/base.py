@@ -1,7 +1,7 @@
 
 class Base(object):
 
-    def clone(self):
+    def clone(self, uuid):
         """Copy object.
 
         Args:
@@ -11,7 +11,7 @@ class Base(object):
             copy (class): class inheriting self's attributes.
 
         """
-        copy = self.__class__()
+        copy = self.__class__(uuid)
         for col in self.__table__.columns:
             val = getattr(self, col.name)
             setattr(copy, col.name, val)

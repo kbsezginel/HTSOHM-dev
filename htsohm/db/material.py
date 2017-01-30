@@ -128,7 +128,7 @@ class Material(Base):
     void_fraction_bin = Column(Integer)                       # dimm.
 
 
-    def __init__(self, run_id=None, ):
+    def __init__(self, object_uuid, run_id=None):
         """Init material-row.
 
         Args:
@@ -138,7 +138,7 @@ class Material(Base):
         Initializes row in materials datatable.
 
         """
-        self.uuid = str(uuid.uuid4())
+        self.uuid = object_uuid
         self.run_id = run_id
 
     @property
