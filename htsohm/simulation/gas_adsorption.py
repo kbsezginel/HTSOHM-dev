@@ -46,7 +46,7 @@ def write_raspa_file(filename, run_id, uuid, helium_void_fraction=None):
             raspa_input_file.write("HeliumVoidFraction     %s\n" % (helium_void_fraction))
         raspa_input_file.write(
             "ExternalTemperature    %s\n" % (external_temperature) +               # External temperature, K 
-            "ExternalPressure       %s)\n" % (external_pressure) +                    # External pressure, Pa
+            "ExternalPressure       %s\n" % (external_pressure) +                    # External pressure, Pa
             "\n" +
             "Component 0 MoleculeName               %s\n" % (adsorbate) +
             "            MoleculeDefinition         TraPPE\n" +
@@ -145,18 +145,18 @@ def run(run_id, uuid, helium_void_fraction=None):
         path = os.environ['SCRATCH']
     else:
         print('OUTPUT DIRECTORY NOT FOUND.')
-    output_dir = os.path.join(path, 'output_%s_%s' % (material_id, uuid4()))
+    output_dir = os.path.join(path, 'output_%s_%s' % (uuid, uuid4()))
     print('Output directory :\t%s' % output_dir)
     os.makedirs(output_dir, exist_ok=True)
     filename = os.path.join(output_dir, '%s_loading.input' % adsorbate)
     write_raspa_file(filename, run_id, uuid, helium_void_fraction)
-    write_cif_file(uuid, output_dir)
-    write_mixing_rules(uuid, output_dir)
-    write_pseudo_atoms(uuid, output_dir)
-    write_force_field(uuid, output_dir)
+    write_cif_file(run_id, uuid, output_dir)
+    write_mixing_rules(run_id, uuid, output_dir)
+    write_pseudo_atoms(run_id, uuid, output_dir)
+    write_force_field(output_dir)
     print("Date :\t%s" % datetime.now().date().isoformat())
     print("Time :\t%s" % datetime.now().time().isoformat())
-    print("Simulating %s loading in %s-%s..." % (adsorbate, run_id, material_id))
+    print("Simulating %s loading in %s..." % (adsorbate, uuid))
     while True:
         try:
             subprocess.run(
