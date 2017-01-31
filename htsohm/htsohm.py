@@ -212,7 +212,10 @@ def retest(m_orig, retests, tolerance):
         m_orig.retest_num += 1
 
         if m_orig.retest_num == retests:
-            m_orig.retest_passed = m.calculate_retest_result(tolerance)
+            try:
+                m_orig.retest_passed = m.calculate_retest_result(tolerance)
+            except ZeroDivisionError as e:
+                print('WARNING: ZeroDivisionError - material.calculate_retest_result(tolerance)')
 
     else:
         pass
