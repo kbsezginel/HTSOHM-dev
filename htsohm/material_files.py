@@ -45,7 +45,7 @@ def random_number_density(number_density_limits, lattice_constants):
     atoms = randrange(min_atoms, max_atoms + 1, 1)
     return atoms
 
-def write_seed_definition_files(run_id, number_of_atomtypes):
+def generate_material(run_id, config):
     """Write .def and .cif files for a randomly-generated porous material.
 
     Args:
@@ -68,6 +68,7 @@ def write_seed_definition_files(run_id, number_of_atomtypes):
     `force_field.def`, but by default no interactions are overwritten in this file.
  
     """
+    number_of_atom_types    = config["number_of_atom_types"]
     lattice_limits          = config["lattice_constant_limits"]
     number_density_limits   = config["number_density_limits"]
     epsilon_limits          = config["epsilon_limits"]
@@ -75,19 +76,11 @@ def write_seed_definition_files(run_id, number_of_atomtypes):
     max_charge              = config["charge_limit"]
     elem_charge             = config["elemental_charge"]
 
-    htsohm_dir = os.path.dirname(os.path.dirname(htsohm.__file__))
-    run_dir = os.path.join(htsohm_dir, run_id)
-    material_dir = os.path.join(run_dir, 'pseudo_materials')
-    if not os.path.exists(material_dir):
-        os.makedirs(material_dir, exist_ok=True)
-
     ########################################################################
-    db_row = Material(run_id)
-    db_row.generation = 0
-    material = PseudoMaterial(db_row.uuid)
+    material = PseudoMaterial(uuid4())
 
     material.atom_types = []
-    for chemical_id in range(number_of_atomtypes):
+    for chemical_id in range(number_of_atom_types):
         material.atom_types.append({
             "chemical-id" : "A_%s" % chemical_id,
             "charge"      : 0.,    # See NOTE above.
@@ -109,11 +102,7 @@ def write_seed_definition_files(run_id, number_of_atomtypes):
             atom_site[i] = round(random(), 4)
         material.atom_sites.append(atom_site)
 
-    material_file = os.path.join(material_dir, '%s.yaml' % db_row.uuid)
-    with open(material_file, "w") as dump_file:
-        yaml.dump(material, dump_file) 
-
-    return db_row
+    return material
 
 def closest_distance(x, y):
     """Finds closest distance between two points across periodic boundaries.
@@ -162,7 +151,7 @@ def random_position(x_o, x_r, strength):
         xfrac = round(x_o + strength * dx, 4)
     return xfrac
 
-def load_material_from_yaml(run_id, uuid)
+def load_material_from_yaml(run_id, uuid):
     htsohm_dir = os.path.dirname(os.path.dirname(htsohm.__file__))
     run_dir = os.path.join(htsohm_dir, run_id)
     material_dir = os.path.join(run_dir, 'pseudo_materials')
@@ -173,7 +162,7 @@ def load_material_from_yaml(run_id, uuid)
 
     return pseudo_material
 
-def write_child_definition_files(parent_material, child_material):
+def mutate_material(parent_material, mutation_strength, config):
     """Modifies a "parent" material's definition files by perturbing each
     parameter by some factor, dictated by the `mutation_strength`.
     
@@ -263,6 +252,9 @@ def dump_material_to_yaml(run_id, material):
     htsohm_dir = os.path.dirname(os.path.dirname(htsohm.__file__))
     run_dir = os.path.join(htsohm_dir, run_id)
     material_dir = os.path.join(run_dir, 'pseudo_materials')
+
+    if not os.path.exists(material_dir):
+        os.makedirs(material_dir, exist_ok=True)
 
     material_file = os.path.join(material_dir, '%s.yaml' % material.uuid)
     with open(material_file, 'w') as dump_file:
