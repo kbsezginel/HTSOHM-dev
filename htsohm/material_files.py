@@ -162,20 +162,26 @@ def random_position(x_o, x_r, strength):
         xfrac = round(x_o + strength * dx, 4)
     return xfrac
 
-def write_child_definition_files(run_id, parent_id, generation, mutation_strength):
+def load_material_from_yaml(run_id, uuid)
+    htsohm_dir = os.path.dirname(os.path.dirname(htsohm.__file__))
+    run_dir = os.path.join(htsohm_dir, run_id)
+    material_dir = os.path.join(run_dir, 'pseudo_materials')
+
+    yaml_file = os.path.join(material_dir, '%s.yaml' % uuid)
+    with open(yaml_file) as load_file:
+        pseudo_material = yaml.load(load_file)
+
+    return pseudo_material
+
+def write_child_definition_files(parent_material, child_material):
     """Modifies a "parent" material's definition files by perturbing each
     parameter by some factor, dictated by the `mutation_strength`.
     
     Args:
-        run_id (str): identification string for run.
-        parent_id (str): uuid, identifying parent material in database.
-        generation (int): iteration count for overall bin-mutate-simulate routine.
-        mutation_strength (float): perturbation factor [0, 1].
+        parent_material (PseudoMaterial object)
 
     Returns:
-        new_material (sqlalchemy.orm.query.Query): database row for storing 
-            simulation data specific to the material. See
-            `htsohm/db/material.py` for more information.
+        child_material (PseudoMaterial object)
 
     Todo:
         * Add methods for assigning and mutating charges.
@@ -189,21 +195,7 @@ def write_child_definition_files(run_id, parent_id, generation, mutation_strengt
     epsilon_limits          = config["epsilon_limits"]
     sigma_limits            = config["sigma_limits"]
 
-    htsohm_dir = os.path.dirname(os.path.dirname(htsohm.__file__))
-    run_dir = os.path.join(htsohm_dir, run_id)
-    material_dir = os.path.join(run_dir, 'pseudo_materials')
-
-    parent_row = session.query(Material).get(str(parent_id))
-    parent_yaml = os.path.join(material_dir, '%s.yaml' % parent_row.uuid)
-    with open(parent_yaml) as load_file:
-        parent_material = yaml.load(load_file)
-
-    ########################################################################
-    # add row to database
-    child_row = Material(run_id)
-    child_row.parent_id = parent_id
-    child_row.generation = generation
-    child_material = PseudoMaterial(child_row.uuid)
+    child_material = PseudoMaterial(uuid4())
 
     ########################################################################
     # perturb LJ-parameters
@@ -265,11 +257,16 @@ def write_child_definition_files(run_id, parent_id, generation, mutation_strengt
                 new_atom_site[i] = round(random(), 4)
             child_material.atom_sites.append(new_atom_site)
 
-    material_file = os.path.join(material_dir, '%s.yaml' % child_row.uuid)
-    with open(material_file, "w") as dump_file:
-        yaml.dump(child_material, dump_file) 
+    return child_material
 
-    return child_row
+def dump_material_to_yaml(run_id, material):
+    htsohm_dir = os.path.dirname(os.path.dirname(htsohm.__file__))
+    run_dir = os.path.join(htsohm_dir, run_id)
+    material_dir = os.path.join(run_dir, 'pseudo_materials')
+
+    material_file = os.path.join(material_dir, '%s.yaml' % material.uuid)
+    with open(material_file, 'w') as dump_file:
+        yaml.dump(material, dump_file)
 
 def write_cif_file(run_id, uuid, simulation_path):
     """Writes .cif file for structural information.
