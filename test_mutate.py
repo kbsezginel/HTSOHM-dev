@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import shutil
 from datetime import datetime
 import os
 
@@ -37,7 +38,7 @@ def start(config_path):
     children_per_generation  = config['children_per_generation']
     mutation_strength        = config['initial_mutation_strength']
 
-    run_id = 'TM_%s_%s_%s' % (uuid, children_per_generation, mutation_strength)
+    run_id = 'TM_%s' % (datetime.now().isoformat())
  
     config['run_id']         = run_id
     config['raspa2_dir']     = os.path.dirname(RASPA2.__file__)
@@ -47,11 +48,14 @@ def start(config_path):
     os.makedirs(run_dir, exist_ok=True)
     os.makedirs(os.path.join(run_dir, 'pseudo_materials'), exist_ok=True)
     file_name = os.path.join(run_dir, 'config.yaml')
+    
     with open(file_name, 'w') as config_file:
         yaml.dump(config, config_file, default_flow_style=False)
     print('Run created with id: %s' % run_id)
 
-    print('PLEASE COPY .YAML FILE TO `pseudo_materials` DIRECTORY.')
+    shutil.copy(
+            os.path.join(htsohm_dir, '%s.yaml' % uuid),
+            os.path.join(run_id, 'pseudo_materials'))
 
 @test_mutate.command()
 @click.argument('run_id')
