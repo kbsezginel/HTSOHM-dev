@@ -189,14 +189,21 @@ def mutate_material(parent_material, mutation_strength, config):
     ########################################################################
     # perturb LJ-parameters
     child_material.atom_types = []
-    for atom_type in parent_material.atom_types:    
+    for atom_type in parent_material.atom_types:
+
+        print('parent atom type :\n\t%s' % atom_type)
+
         new_atom_type = {'chemical-id' : atom_type['chemical-id']}
+        new_atom_type['charge'] = 0.
         new_atom_type['epsilon'] = (round(atom_type['epsilon'] +
                 mutation_strength * (uniform(*epsilon_limits) -
                 atom_type['epsilon']), 4))
         new_atom_type['sigma'] = (round(atom_type['sigma'] +
-                mutation_strength * (uniform(*epsilon_limits) -
-                atom_type['epsilon']), 4))
+                mutation_strength * (uniform(*sigma_limits) -
+                atom_type['sigma']), 4))
+
+        print('child atom type :\n\t%s' % new_atom_type)
+
         child_material.atom_types.append(new_atom_type)
 
     ########################################################################
@@ -206,6 +213,10 @@ def mutate_material(parent_material, mutation_strength, config):
         old_x = parent_material.lattice_constants[i]
         random_x = uniform(*lattice_limits)
         new_x = round(old_x + mutation_strength * (random_x - old_x), 4)
+
+        print('parent constant :\t%s' % old_x)
+        print('child constant :\t%s' % new_x)
+
         child_material.lattice_constants[i] = new_x
 
     ########################################################################
@@ -220,6 +231,11 @@ def mutate_material(parent_material, mutation_strength, config):
     new_vol = new_LCs['a'] * new_LCs['b'] * new_LCs['c']
     child_material.number_of_atoms = int(new_number_density * new_vol)
 
+    print('parent number density :\t%s' % old_number_density)
+    print('child number density :\t%s' % new_number_density)
+    print('parent no. atom sites :\t%s' % len(parent_material.atom_sites))
+    print('child no. atom sites :\t%s' % child_material.number_of_atoms)
+    
     ########################################################################
     # remove excess atom-sites, if any
     if child_material.number_of_atoms < len(parent_material.atom_sites):
