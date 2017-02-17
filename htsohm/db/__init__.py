@@ -2,7 +2,7 @@
 
 # standard library imports
 import os
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, MetaData, Table
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import yaml
@@ -27,3 +27,7 @@ from htsohm.db.mutation_strength import MutationStrength
 # Create tables in the engine, if they don't exist already.
 Base.metadata.create_all(engine)
 Base.metadata.bind = engine
+
+meta = MetaData(bind=engine)
+materials = Table('materials', meta, autoload=True)
+mutation_strengths = Table('mutation_strengths', meta, autoload=True)
