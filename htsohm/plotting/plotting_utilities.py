@@ -2,6 +2,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import matplotlib.patches as patches
+import numpy as np
 
 from htsohm.utilities import *
 from htsohm.db.queries import *
@@ -61,7 +62,7 @@ def highlight_children(x, y, z_bin, run_id, gen, children, data_type):
                 marker='o',
                 facecolors=child_colour,
                 edgecolors='none',
-                alpha=0.7, s=2
+                alpha=0.5, s=2
             )
         
         elif children == 'top_five':

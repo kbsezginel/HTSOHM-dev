@@ -60,7 +60,7 @@ def plot_points(
             marker='o', 
             facecolors='k',
             edgecolors='none',
-            alpha=0.7, s=2
+            alpha=0.5, s=2
         )
 
     # highlight most recent generation
