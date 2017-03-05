@@ -458,3 +458,204 @@ def query_dGdP(x, z_bin, run_id, gen):
     result.close()
 
     return x, y0, y1
+
+def query_most_populous_bin(run_id):
+    sql = text(
+            'select (gas_adsorption_bin, surface_area_bin, ' +
+            'void_fraction_bin) from materials where ' +
+            'run_id=\'%s\' and generation_index <=100' % run_id +
+            ' group by (gas_adsorption_bin, surface_area_bin, ' +
+            'void_fraction_bin) order by count(uuid) desc limit 1;'
+            )
+    result = engine.execute(sql)
+    for row in result:
+        most_populous_bin = row[0]
+    result.close()
+
+    return most_populous_bin
+
+def query_parents_of_bin(run_id, child_bin):
+    sql = text(
+            'select parent_id from materials where ' +
+            'run_id=\'%s\' and generation_index <= 100 and ' % run_id +
+            '(gas_adsorption_bin, surface_area_bin, void_fraction_bin)' +
+            '=%s;' % child_bin
+            )
+    result=engine.execute(sql)
+    parent_ids = []
+    for row in result:
+        parent_ids.append(row[0])
+    result.close()
+
+    return parent_ids
+
+def parent_search(run_id):
+    child_bin = query_most_populous_bin(run_id)
+    parent_ids = query_parents_of_bin(run_id, child_bin)
+
+    new_parent_ids = []
+    parent_bins = []
+    for parent_id in parent_ids:
+        if parent_id != None:
+            sql = text(
+                    'select (gas_adsorption_bin, surface_area_bin, ' +
+                    'void_fraction_bin) from materials where ' +
+                    'run_id=\'%s\' and id=%s;' % (run_id, parent_id)
+                    )
+            result = engine.execute(sql)
+            for row in result:
+                parent_bins.append(row[0])
+            result.close()
+            new_parent_ids.append(parent_id)
+    
+    filtered_parent_bins = []
+    for i in parent_bins:
+        if i not in filtered_parent_bins:
+            print('%s\t%s' % (i, parent_bins.count(i)))
+            filtered_parent_bins.append(i)
+
+    return parent_bins
+
+def query_population_over_time(run_id, bin_of_interest, generations):
+    counts = []
+    for generation in range(generations):
+        print('%s / %s' % (generation, generations))
+        sql = text(
+                'select count(uuid) from materials where ' +
+                'run_id=\'%s\' and generation_index <= 100 and' % run_id +
+                '(gas_adsorption_bin, surface_area_bin, void_fraction_bin)=' +
+                '%s and generation <= %s;' % (bin_of_interest, generation)
+                )
+        result = engine.execute(sql)
+        for row in result:
+            print(row)
+            print(row[0], type(row[0]))
+            if row[0] == None:
+                counts.append(0)
+            else:
+                counts.append(int(row[0]))
+        result.close()
+    return counts
+
+def query_average_bin_count(run_id, generation):
+    sql = text(
+            'select avg(x.count) from (select count(uuid) from materials ' +
+            'where run_id=\'%s\' and generation <= %s ' % (run_id, generation) +
+            'group by (gas_adsorption_bin, surface_area_bin, ' +
+            'void_fraction_bin))x;'
+            )
+    result = engine.execute(sql)
+    for row in result:
+        average_bin_count = int(row[0])
+    result.close()
+    return average_bin_count
+
+def query_all_parent_bins(run_id):
+    config = load_config_file(run_id)
+    
+    sql = text(
+            'select max(generation) from materials where ' +
+            'run_id=\'%s\';' % run_id
+            )
+    result = engine.execute(sql)
+    for row in result:
+        max_generation = row[0]
+
+    print('max generation :\t%s' % max_generation)
+
+    # query parent_ids
+    all_parent_ids = []
+    for generation in range(1, max_generation):
+        sql = text(
+                'select parent_id from materials where ' +
+                'run_id=\'%s\' and generation=%s;' % (run_id, generation)
+                )
+        result = engine.execute(sql)
+        generation_parent_ids   = []
+        for row in result:
+            generation_parent_ids.append(row[0])
+        result.close()
+        all_parent_ids.append(generation_parent_ids)
+
+    # query parent bins
+    all_parent_bins = []
+    for gen_parent_ids in all_parent_ids:
+        gen_parent_bins = []
+        for parent_id in gen_parent_ids:
+            sql = text(
+                    'select (gas_adsorption_bin, surface_area_bin, ' +
+                    'void_fraction_bin) from materials where id=%s;' % parent_id
+                    )
+            result = engine.execute(sql)
+            for row in result:
+                gen_parent_bins.append(row[0])
+            result.close()
+        all_parent_bins.append(gen_parent_bins)
+        
+    # count and filter
+    all_filtered_bins = []
+    all_counts = []
+    for gen_parent_bins in all_parent_bins:
+        gen_filtered_bins = []
+        gen_counts = []
+        for parent_bin in gen_parent_bins:
+            if parent_bin not in gen_filtered_bins:
+                gen_filtered_bins.append(parent_bin)
+                gen_counts.append(gen_parent_bins.count(parent_bin))
+        all_filtered_bins.append(gen_filtered_bins)
+        all_counts.append(gen_counts)
+
+    # normalise count, combine in one object
+    data = {}
+    for generation in range(len(all_filtered_bins)):
+        gen_bins = all_filtered_bins[generation]
+        gen_counts = all_counts[generation]
+        data['generation_%s' % generation] = {}
+        data['generation_%s' % generation]['ga'] = [int(i[1]) for i in gen_bins]
+        data['generation_%s' % generation]['sa'] = [int(i[3]) for i in gen_bins]
+        data['generation_%s' % generation]['vf'] = [int(i[5]) for i in gen_bins]
+        normalised_counts = [i / max(gen_counts) for i in gen_counts]
+        data['generation_%s' % generation]['count'] = normalised_counts
+
+    return data
+
+def query_all_child_bins(run_id):
+    config = load_config_file(run_id)
+    
+    sql = text(
+            'select max(generation) from materials where ' +
+            'run_id=\'%s\';' % run_id
+            )
+    result = engine.execute(sql)
+    for row in result:
+        max_generation = row[0]
+
+    print('max generation :\t%s' % max_generation)
+
+    # query bins and counts
+    data = {}
+    for generation in range(1, max_generation):
+        sql = text(
+                'select (gas_adsorption_bin, surface_area_bin, ' +
+                'void_fraction_bin), count(uuid) from materials where ' +
+                'run_id=\'%s\' and generation<=%s ' % (run_id, generation) +
+                'group by (gas_adsorption_bin, surface_area_bin, ' +
+                'void_fraction_bin);'
+                )
+        result = engine.execute(sql)
+        data['generation_%s' % generation] = {}
+        data['generation_%s' % generation]['ga'] = []
+        data['generation_%s' % generation]['sa'] = []
+        data['generation_%s' % generation]['vf'] = []
+        count = []
+        for row in result:
+            data['generation_%s' % generation]['ga'].append(int(row[0][1]))
+            data['generation_%s' % generation]['sa'].append(int(row[0][3]))
+            data['generation_%s' % generation]['vf'].append(int(row[0][5]))
+#            data['generation_%s' % generation]['count'].append(int(row[1]))
+            count.append(int(row[1]))
+        data['generation_%s' % generation]['count'] = [i / max(count) for i in count]
+
+        result.close()
+
+    return data

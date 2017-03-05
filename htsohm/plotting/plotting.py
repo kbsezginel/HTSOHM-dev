@@ -267,3 +267,293 @@ def plot_bin_bars(run_id, gen0, gen1):
             pad_inches = 0
     )
 
+def plot_bin_search(x_type, y_type, x, y, ax, config):
+    new_bins = ['%s,%s' % (x[i], y[i]) for i in range(len(x))]
+    filtered_bins = []
+    counts = []
+    for i in new_bins:
+        if i not in filtered_bins:
+            filtered_bins.append(i)
+            counts.append(new_bins.count(i))
+    counts = [i / float(max(counts)) for i in counts]
+
+    for i in range(len(filtered_bins)):
+        ax.add_patch(
+                patches.Rectangle(
+                    (
+                        int(filtered_bins[i][0]),
+                        int(filtered_bins[i][2])
+                        ),
+                    1, 1,
+                    facecolor=cm.Reds(counts[i]), edgecolor=None
+                    )
+                )
+
+def plot_child_and_parent_bins(run_id):
+    number_of_generations = count_generations(run_id)
+    parent_data = query_all_parent_bins(run_id)
+    child_data = query_all_child_bins(run_id)
+
+    number_of_bins = load_config_file(run_id)['number_of_convergence_bins']
+
+##    column = 0
+##    columns = number_of_generations
+##    rows = number_of_bins
+    for generation in range(1, number_of_generations):
+##        column += 1
+        fig = plt.figure(figsize=(12, 20))
+        print('plot %s / %s ...' % (generation, number_of_generations))
+        p        = parent_data['generation_%s' % generation]
+        p_ga     = p['ga']
+        p_sa     = p['sa']
+        p_vf     = p['vf']
+        p_count  = p['count']
+        c        = child_data['generation_%s' % generation]
+        c_ga     = c['ga']
+        c_sa     = c['sa']
+        c_vf     = c['vf']
+        c_count  = c['count']
+
+        # vf v. sa
+        #######################################################################
+
+        # parent
+        for i in range(number_of_bins):
+            ax0 = plt.subplot(number_of_bins, 6, 1 + i * 6)
+            plt.xlim(0, 10)
+            plt.ylim(0, 10)
+            for j in range(len(p_ga)):
+                if p_ga[j] == i:
+                    ax0.add_patch(
+                            patches.Rectangle(
+                                (p_vf[j], p_sa[j]),
+                                1, 1,
+                                facecolor=cm.Reds(p_count[j])
+                                )
+                            )
+        # child
+            ax1 = plt.subplot(number_of_bins, 6, 1 + i * 6 + 1)
+            plt.xlim(0, 10)
+            plt.ylim(0, 10)
+            c = 0
+            for j in range(len(c_ga)):
+                if c_ga[j] == i:
+                    c += 1
+                    ax1.add_patch(
+                            patches.Rectangle(
+                                (c_vf[j], c_sa[j]),
+                                1, 1,
+                                facecolor=cm.Reds(c_count[j])
+                                )
+                            )
+
+        # vf v. ga
+        #######################################################################
+
+        # parent
+        for i in range(number_of_bins):
+            ax0 = plt.subplot(number_of_bins, 6, 1 + i * 6 + 2)
+            plt.xlim(0, 10)
+            plt.ylim(0, 10)
+            for j in range(len(p_ga)):
+                if p_sa[j] == i:
+                    ax0.add_patch(
+                            patches.Rectangle(
+                                (p_vf[j], p_ga[j]),
+                                1, 1,
+                                facecolor=cm.Reds(p_count[j])
+                                )
+                            )
+        # child
+            ax1 = plt.subplot(number_of_bins, 6, 1 + i * 6 + 3)
+            plt.xlim(0, 10)
+            plt.ylim(0, 10)
+            c = 0
+            for j in range(len(c_ga)):
+                if c_sa[j] == i:
+                    c += 1
+                    ax1.add_patch(
+                            patches.Rectangle(
+                                (c_vf[j], c_ga[j]),
+                                1, 1,
+                                facecolor=cm.Reds(c_count[j])
+                                )
+                            )
+ 
+        # sa v. ga
+        #######################################################################
+
+        # parent
+        for i in range(number_of_bins):
+            ax0 = plt.subplot(number_of_bins, 6, 1 + i * 6 + 4)
+            plt.xlim(0, 10)
+            plt.ylim(0, 10)
+            for j in range(len(p_ga)):
+                if p_vf[j] == i:
+                    ax0.add_patch(
+                            patches.Rectangle(
+                                (p_sa[j], p_ga[j]),
+                                1, 1,
+                                facecolor=cm.Reds(p_count[j])
+                                )
+                            )
+        # child
+            ax1 = plt.subplot(number_of_bins, 6, 1 + i * 6 + 5)
+            plt.xlim(0, 10)
+            plt.ylim(0, 10)
+            c = 0
+            for j in range(len(c_ga)):
+                if c_vf[j] == i:
+                    c += 1
+                    ax1.add_patch(
+                            patches.Rectangle(
+                                (c_sa[j], c_ga[j]),
+                                1, 1,
+                                facecolor=cm.Reds(c_count[j])
+                                )
+                            )
+ 
+
+        plt.savefig(
+                '%s_%s_DatL0ud.png' % (run_id, generation),
+                transparent = True
+        )
+        plt.close(fig)
+
+                   
+                    
+                    
+                    
+                    
+                    ##        for z_bin in range(number_of_bins):
+##            row = z_bin + 1
+##
+##        # parents, vf v sa
+##        ax = plt.subplot(rows, columns, (row - 1) * columns + column)
+
+#        for i in range(len(p_ga)):
+#            ax.add_path(
+#                    patches.Rectangle(
+#                        (p_vf[i], p_sa[i]),
+#                        1, 1,
+#                        facecolor=cm.Reds(p_counts[i])
+#                        )
+#                    )
+#        p_ax = plt.subplot(2, 3, 2)
+#        for i in range(len(p_ga)):
+#            ax.add_path(
+#                    patches.Rectangle(
+#                        (p_vf[i], p_ga[i]),
+#                        1, 1,
+#                        facecolor=cm.Reds(p_counts[i])
+#                        )
+#                    )
+#        p_ax = plt.subplot(2, 3, 1)
+#        for i in range(len(p_ga)):
+#            ax.add_path(
+#                    patches.Rectangle(
+#                        (p_vf[i], p_sa[i]),
+#                        1, 1,
+#                        facecolor=cm.Reds(p_counts[i])
+#                        )
+#                    )
+#
+
+#
+#
+#        children = parent_data[generation]
+#
+#        fig.close()
+
+def plot_parent_search(run_id):
+    fig = plt.figure(figsize = (12, 4))
+    number_of_bins = load_config_file(run_id)['number_of_convergence_bins']
+    config = load_config_file(run_id)
+
+    # child bin
+    most_populous_bin = query_most_populous_bin(run_id)
+    ga_child = int(most_populous_bin[1])
+    sa_child = int(most_populous_bin[3])
+    vf_child = int(most_populous_bin[5])
+
+    # parent bins
+    parent_bins = parent_search(run_id)
+    ga = []
+    sa = []
+    vf = []
+    for parent_bin in parent_bins:
+        ga.append(int(parent_bin[1]))
+        sa.append(int(parent_bin[3]))
+        vf.append(int(parent_bin[5]))
+
+    # vf v sa
+    print(vf_child, sa_child)
+    ax0 = plt.subplot(1, 3, 1)
+    plt.xlabel('void fraction')
+    plt.ylabel('surface area')
+    plt.xlim(0,10)
+    plt.ylim(0,10)
+    plot_bin_search('vf', 'sa', vf, sa, ax0, config)
+    ax0.add_patch(
+        patches.Rectangle(
+            (vf_child, sa_child),
+            1, 1,
+            facecolor='none', edgecolor='b', linewidth=2
+            )
+        )
+
+    # vf v ga
+    ax1 = plt.subplot(1, 3, 2)
+    plt.xlabel('void fraction')
+    plt.ylabel('gas adsorption')
+    plt.xlim(0,10)
+    plt.ylim(0,10)
+    plot_bin_search('vf', 'ga', vf, ga, ax1, config)
+    ax1.add_patch(
+        patches.Rectangle(
+            (vf_child, ga_child),
+            1, 1,
+            facecolor='none', edgecolor='b', linewidth=2
+            )
+        )
+ 
+    # sa v ga
+    ax2 = plt.subplot(1, 3, 3)
+    plt.xlabel('surface area')
+    plt.ylabel('gas adsorption')
+    plt.xlim(0,10)
+    plt.ylim(0,10)
+    plot_bin_search('sa', 'ga', sa, ga, ax2, config)
+    ax2.add_patch(
+        patches.Rectangle(
+            (sa_child, ga_child),
+            1, 1,
+            facecolor='none', edgecolor='b', linewidth=2
+            )
+        )
+
+    plt.savefig(
+            '%s_ParentSearch.png' % run_id,
+            transparent = True
+    )
+
+
+def plot_population_over_time(run_id, bin_of_interest, generations):
+
+    print('querying counts from one bin...')
+    counts = query_population_over_time(run_id, bin_of_interest, generations)
+    print('plotting...')
+    plt.plot(range(len(counts)), counts, '-r')
+
+    print('querying average bin-counts...')
+    average_counts = []
+    for i in range(generations):
+        print('%s / %s' % (i, generations))
+        average_counts.append(query_average_bin_count(run_id, i))
+    print('plotting...')
+
+    plt.plot(range(len(average_counts)), average_counts, '-k')
+
+    plt.savefig(
+            '%s_%s_%s_BCvG.png' % (run_id, bin_of_interest, generations), 
+            transparent=True)
