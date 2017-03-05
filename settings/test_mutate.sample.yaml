@@ -21,7 +21,7 @@
 #   'surface_area_simulation_cycles'        int             0 - inf
 
 simulations_directory: 'HTSOHM'
-children_per_generation: 100
+children_per_generation: 20
 number_of_atom_types: 4
 initial_mutation_strength: 0.2
 number_of_convergence_bins: 10
@@ -31,6 +31,7 @@ elemental_charge: 0.0001
 epsilon_limits: [1.258, 513.264]
 lattice_constant_limits: [25.6, 51.2]
 number_density_limits: [1.49e-05, 0.02122]
+#number_density_limits: [1.49e-05, 0.00002122]
 sigma_limits: [1.052, 6.549]
 
 parent_uuid: '0709c020-d307-44e2-9610-5af2808bea42'
@@ -39,21 +40,21 @@ material_properties: ['gas_adsorption_0', 'gas_adsorption_1', 'surface_area', 'h
 
 gas_adsorption_0:
   adsorbate: 'methane'
-  simulation_cycles: 100
-  initialization_cycles: 100
+  simulation_cycles: 50
+  initialization_cycles: 50
   external_temperature: 298
   external_pressure: 3500000
   limits: [0, 300]
 gas_adsorption_1:
   adsorbate: 'methane'
-  simulation_cycles: 100
-  initialization_cycles: 100
+  simulation_cycles: 50
+  initialization_cycles: 50
   external_temperature: 298
   external_pressure: 580000
   limits: [0, 300]
 helium_void_fraction:
-  simulation_cycles: 100
+  simulation_cycles: 50
   limits: [0, 1]
 surface_area:
-  simulation_cycles: 10
+  simulation_cycles: 5
   limits: [0, 4500]
