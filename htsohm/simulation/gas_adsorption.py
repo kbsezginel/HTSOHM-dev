@@ -46,7 +46,11 @@ def write_raspa_file(filename, run_id, uuid, helium_void_fraction=None):
             raspa_input_file.write("HeliumVoidFraction     %s\n" % (helium_void_fraction))
         raspa_input_file.write(
             "ExternalTemperature    %s\n" % (external_temperature) +               # External temperature, K 
+<<<<<<< 635d15d5edee9517af9ea368e3c6176b238fe889
             "ExternalPressure       %s\n" % (external_pressure) +                    # External pressure, Pa
+=======
+            "ExternalPressure       %s)\n" % (external_pressure) +                    # External pressure, Pa
+>>>>>>> reformatted writing files, writes them at simulation-time into temporary dir
             "\n" +
             "Component 0 MoleculeName               %s\n" % (adsorbate) +
             "            MoleculeDefinition         TraPPE\n" +
