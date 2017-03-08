@@ -4,6 +4,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import matplotlib.patches as patches
+import matplotlib.gridspec as gridspec
 import numpy as np
 from sqlalchemy import *
 from statistics import median
@@ -289,6 +290,141 @@ def plot_bin_search(x_type, y_type, x, y, ax, config):
                     )
                 )
 
+def plot_all_bin_counts(run_id):
+    number_of_generations = count_generations(run_id)
+    data = query_all_bin_counts(run_id)
+
+    number_of_bins = load_config_file(run_id)['number_of_convergence_bins']
+
+    over_bins = [
+            '(0,0,1)', '(0,0,2)', '(0,0,3)', '(0,0,4)', '(0,0,5)', 
+            '(0,1,9)', '(1,0,3)', '(1,0,4)', '(1,1,4)', '(1,1,5)',
+            '(1,2,4)', '(1,2,5)', '(1,2,9)', '(1,3,5)', '(1,3,9)',
+            '(1,4,6)', '(1,4,8)', '(1,4,9)', '(1,5,7)', '(1,5,8)',
+            '(1,5,9)', '(1,6,8)', '(1,6,9)', '(2,1,5)', '(2,2,5)',
+            '(2,2,6)', '(2,2,7)', '(2,3,6)', '(2,4,6)', '(2,4,7)',
+            '(2,5,7)', '(2,5,8)', '(2,6,8)', '(2,7,8)', '(2,7,9)',
+            '(2,8,8)', '(3,3,6)', '(3,3,7)', '(3,4,7)', '(3,5,7)',
+            '(3,6,8)', '(3,7,8)'
+            ]
+    under_bins = [
+            '(0,0,9)', '(0,2,9)', '(1,0,5)', '(1,1,3)', '(1,1,6)',
+            '(1,1,9)', '(1,3,6)', '(1,4,5)', '(1,4,7)', '(1,5,6)',
+            '(1,6,7)', '(1,7,8)', '(1,7,9)', '(2,1,4)', '(2,1,6)',
+            '(2,3,5)', '(2,3,7)', '(2,5,6)', '(2,5,9)', '(2,6,7)',
+            '(2,6,9)', '(2,8,9)', '(3,4,6)', '(3,4,8)', '(3,5,8)',
+            '(3,6,7)', '(3,8,8)', '(4,4,7)', '(4,5,7)', '(4,5,8)',
+            '(4,6,7)', '(4,6,8)', '(4,7,8)', '(4,6,7)', '(4,6,8)',
+            '(4,7,8)'
+            ]
+
+    for generation in range(number_of_generations):
+        fig = plt.figure(figsize=(12, 41))
+        G = gridspec.GridSpec(41,12)
+
+        print('plot %s / %s ...' % (generation, number_of_generations))
+        d        = data['generation_%s' % generation]
+        d_ga     = d['ga']
+        d_sa     = d['sa']
+        d_vf     = d['vf']
+        d_count  = d['count']
+       
+        # vf v. sa
+        #######################################################################
+
+        for i in range(number_of_bins):
+            ax0 = plt.subplot2grid((41,12), (i * 4, 0), colspan=4, rowspan=4)
+            plt.xlim(0, 10)
+            plt.ylim(0, 10)
+            for j in range(len(d_ga)):
+                if d_ga[j] == i:
+                    current_bin = '(%s,%s,%s)' % (d_ga[j], d_sa[j], d_vf[j])
+                    if current_bin in over_bins:
+                        edge_color = 'orange'
+                    elif current_bin in under_bins:
+                        edge_color = 'purple'
+                    else:
+                        edge_color = 'w'
+                    ax0.add_patch(
+                            patches.Rectangle(
+                                (d_vf[j], d_sa[j]),
+                                1, 1,
+                                facecolor=cm.Reds(d_count[j]),
+                                edgecolor=edge_color
+                                )
+                            )
+
+        # colorbar
+        ax1 = plt.subplot2grid((41,12), (40,0), colspan=12)
+        cmap = mpl.cm.Reds
+        norm = mpl.colors.Normalize(vmin=d['min_count'], vmax=d['max_count'])
+        cb1 = mpl.colorbar.ColorbarBase(
+                ax1, cmap=cmap,
+                norm=norm,
+                orientation='horizontal',
+                ticks=[d['min_count'], d['max_count']]
+                )
+        #cb1.set_label('bin-counts')
+
+        # vf v. ga
+        #######################################################################
+
+        for i in range(number_of_bins):
+            ax0 = plt.subplot2grid((41, 12), (i * 4, 4), rowspan=4, colspan=4)
+            plt.xlim(0, 10)
+            plt.ylim(0, 10)
+            for j in range(len(d_sa)):
+                if d_sa[j] == i:
+                    current_bin = '(%s,%s,%s)' % (d_ga[j], d_sa[j], d_vf[j])
+                    if current_bin in over_bins:
+                        edge_color = 'orange'
+                    elif current_bin in under_bins:
+                        edge_color = 'purple'
+                    else:
+                        edge_color = 'w'
+                    ax0.add_patch(
+                            patches.Rectangle(
+                                (d_vf[j], d_ga[j]),
+                                1, 1,
+                                facecolor=cm.Reds(d_count[j]),
+                                edgecolor=edge_color
+                                )
+                            )
+
+        # sa v. ga
+        #######################################################################
+
+        for i in range(number_of_bins):
+            ax0 = plt.subplot2grid((41, 12), (i * 4, 8), rowspan=4, colspan=4)
+            plt.xlim(0, 10)
+            plt.ylim(0, 10)
+            for j in range(len(d_vf)):
+                if d_vf[j] == i:
+                    current_bin = '(%s,%s,%s)' % (d_ga[j], d_sa[j], d_vf[j])
+                    if current_bin in over_bins:
+                        edge_color = 'orange'
+                    elif current_bin in under_bins:
+                        edge_color = 'purple'
+                    else:
+                        edge_color = 'w'
+                    ax0.add_patch(
+                            patches.Rectangle(
+                                (d_sa[j], d_ga[j]),
+                                1, 1,
+                                facecolor=cm.Reds(d_count[j]),
+                                edgecolor=edge_color
+                                )
+                            )
+
+        plt.tight_layout()
+        plt.savefig(
+                '%s_%s_AllBinCounts.png' % (run_id, generation),
+                transparent = True
+        )
+        plt.close(fig)
+
+
+
 def plot_child_and_parent_bins(run_id):
     number_of_generations = count_generations(run_id)
     parent_data = query_all_parent_bins(run_id)
@@ -296,12 +432,9 @@ def plot_child_and_parent_bins(run_id):
 
     number_of_bins = load_config_file(run_id)['number_of_convergence_bins']
 
-##    column = 0
-##    columns = number_of_generations
-##    rows = number_of_bins
-    for generation in range(1, number_of_generations):
-##        column += 1
-        fig = plt.figure(figsize=(12, 20))
+    for generation in range(770, number_of_generations):
+        fig = plt.figure(figsize=(30,40))
+        G = gridspec.GridSpec(40,30)
         print('plot %s / %s ...' % (generation, number_of_generations))
         p        = parent_data['generation_%s' % generation]
         p_ga     = p['ga']
@@ -319,7 +452,7 @@ def plot_child_and_parent_bins(run_id):
 
         # parent
         for i in range(number_of_bins):
-            ax0 = plt.subplot(number_of_bins, 6, 1 + i * 6)
+            ax0 = plt.subplot2grid((40,30), (i * 4, 0), rowspan=4, colspan=4)
             plt.xlim(0, 10)
             plt.ylim(0, 10)
             for j in range(len(p_ga)):
@@ -332,13 +465,11 @@ def plot_child_and_parent_bins(run_id):
                                 )
                             )
         # child
-            ax1 = plt.subplot(number_of_bins, 6, 1 + i * 6 + 1)
+            ax1 = plt.subplot2grid((40,30), (i * 4, 5), rowspan=4, colspan=4)
             plt.xlim(0, 10)
             plt.ylim(0, 10)
-            c = 0
             for j in range(len(c_ga)):
                 if c_ga[j] == i:
-                    c += 1
                     ax1.add_patch(
                             patches.Rectangle(
                                 (c_vf[j], c_sa[j]),
@@ -347,12 +478,30 @@ def plot_child_and_parent_bins(run_id):
                                 )
                             )
 
+        ax2 = plt.subplot2grid((40,30), (0,4), rowspan=8)
+        cmap = mpl.cm.Reds
+        norm = mpl.colors.Normalize(vmin=p['min_count'], vmax=p['max_count'])
+        cb2 = mpl.colorbar.ColorbarBase(
+                ax2, cmap=cmap,
+                norm=norm,
+                orientation='vertical',
+                ticks=[p['min_count'], p['max_count']]
+                )
+        ax3 = plt.subplot2grid((40,30), (0,9), rowspan=8)
+        norm = mpl.colors.Normalize(vmin=c['min_count'], vmax=c['max_count'])
+        cb3 = mpl.colorbar.ColorbarBase(
+                ax3, cmap=cmap,
+                norm=norm,
+                orientation='vertical',
+                ticks=[c['min_count'], c['max_count']]
+                )
+         
         # vf v. ga
         #######################################################################
 
         # parent
         for i in range(number_of_bins):
-            ax0 = plt.subplot(number_of_bins, 6, 1 + i * 6 + 2)
+            ax0 = plt.subplot2grid((40,30), (i * 4, 10), rowspan=4, colspan=4)
             plt.xlim(0, 10)
             plt.ylim(0, 10)
             for j in range(len(p_ga)):
@@ -365,13 +514,11 @@ def plot_child_and_parent_bins(run_id):
                                 )
                             )
         # child
-            ax1 = plt.subplot(number_of_bins, 6, 1 + i * 6 + 3)
+            ax1 = plt.subplot2grid((40,30), (i * 4, 15), rowspan=4, colspan=4)
             plt.xlim(0, 10)
             plt.ylim(0, 10)
-            c = 0
             for j in range(len(c_ga)):
                 if c_sa[j] == i:
-                    c += 1
                     ax1.add_patch(
                             patches.Rectangle(
                                 (c_vf[j], c_ga[j]),
@@ -379,13 +526,31 @@ def plot_child_and_parent_bins(run_id):
                                 facecolor=cm.Reds(c_count[j])
                                 )
                             )
- 
+
+        ax2 = plt.subplot2grid((40,30), (0,14), rowspan=8)
+        cmap = mpl.cm.Reds
+        norm = mpl.colors.Normalize(vmin=p['min_count'], vmax=p['max_count'])
+        cb2 = mpl.colorbar.ColorbarBase(
+                ax2, cmap=cmap,
+                norm=norm,
+                orientation='vertical',
+                ticks=[p['min_count'], p['max_count']]
+                )
+        ax3 = plt.subplot2grid((40,30), (0,19), rowspan=8)
+        norm = mpl.colors.Normalize(vmin=c['min_count'], vmax=c['max_count'])
+        cb3 = mpl.colorbar.ColorbarBase(
+                ax3, cmap=cmap,
+                norm=norm,
+                orientation='vertical',
+                ticks=[c['min_count'], c['max_count']]
+                )
+
         # sa v. ga
         #######################################################################
 
         # parent
         for i in range(number_of_bins):
-            ax0 = plt.subplot(number_of_bins, 6, 1 + i * 6 + 4)
+            ax0 = plt.subplot2grid((40,30), (i * 4, 20), rowspan=4, colspan=4)
             plt.xlim(0, 10)
             plt.ylim(0, 10)
             for j in range(len(p_ga)):
@@ -398,13 +563,11 @@ def plot_child_and_parent_bins(run_id):
                                 )
                             )
         # child
-            ax1 = plt.subplot(number_of_bins, 6, 1 + i * 6 + 5)
+            ax1 = plt.subplot2grid((40,30), (i * 4, 25), rowspan=4, colspan=4)
             plt.xlim(0, 10)
             plt.ylim(0, 10)
-            c = 0
             for j in range(len(c_ga)):
                 if c_vf[j] == i:
-                    c += 1
                     ax1.add_patch(
                             patches.Rectangle(
                                 (c_sa[j], c_ga[j]),
@@ -412,58 +575,31 @@ def plot_child_and_parent_bins(run_id):
                                 facecolor=cm.Reds(c_count[j])
                                 )
                             )
- 
+        ax2 = plt.subplot2grid((40,30), (0,24), rowspan=8)
+        cmap = mpl.cm.Reds
+        norm = mpl.colors.Normalize(vmin=p['min_count'], vmax=p['max_count'])
+        cb2 = mpl.colorbar.ColorbarBase(
+                ax2, cmap=cmap,
+                norm=norm,
+                orientation='vertical',
+                ticks=[p['min_count'], p['max_count']]
+                )
+        ax3 = plt.subplot2grid((40,30), (0,29), rowspan=8)
+        norm = mpl.colors.Normalize(vmin=c['min_count'], vmax=c['max_count'])
+        cb3 = mpl.colorbar.ColorbarBase(
+                ax3, cmap=cmap,
+                norm=norm,
+                orientation='vertical',
+                ticks=[c['min_count'], c['max_count']]
+                )
 
+        plt.tight_layout()
         plt.savefig(
-                '%s_%s_DatL0ud.png' % (run_id, generation),
+#                '%s_%s_ParentBins_ChildBins.png' % (run_id, generation),
+                '%s_%s_ParentBins_AllBins.png' % (run_id, generation),
                 transparent = True
         )
         plt.close(fig)
-
-                   
-                    
-                    
-                    
-                    
-                    ##        for z_bin in range(number_of_bins):
-##            row = z_bin + 1
-##
-##        # parents, vf v sa
-##        ax = plt.subplot(rows, columns, (row - 1) * columns + column)
-
-#        for i in range(len(p_ga)):
-#            ax.add_path(
-#                    patches.Rectangle(
-#                        (p_vf[i], p_sa[i]),
-#                        1, 1,
-#                        facecolor=cm.Reds(p_counts[i])
-#                        )
-#                    )
-#        p_ax = plt.subplot(2, 3, 2)
-#        for i in range(len(p_ga)):
-#            ax.add_path(
-#                    patches.Rectangle(
-#                        (p_vf[i], p_ga[i]),
-#                        1, 1,
-#                        facecolor=cm.Reds(p_counts[i])
-#                        )
-#                    )
-#        p_ax = plt.subplot(2, 3, 1)
-#        for i in range(len(p_ga)):
-#            ax.add_path(
-#                    patches.Rectangle(
-#                        (p_vf[i], p_sa[i]),
-#                        1, 1,
-#                        facecolor=cm.Reds(p_counts[i])
-#                        )
-#                    )
-#
-
-#
-#
-#        children = parent_data[generation]
-#
-#        fig.close()
 
 def plot_parent_search(run_id):
     fig = plt.figure(figsize = (12, 4))
@@ -539,7 +675,7 @@ def plot_parent_search(run_id):
 
 
 def plot_population_over_time(run_id, bin_of_interest, generations):
-
+    fig = plt.figure()
     print('querying counts from one bin...')
     counts = query_population_over_time(run_id, bin_of_interest, generations)
     print('plotting...')
@@ -548,12 +684,91 @@ def plot_population_over_time(run_id, bin_of_interest, generations):
     print('querying average bin-counts...')
     average_counts = []
     for i in range(generations):
-        print('%s / %s' % (i, generations))
+#        print('%s / %s' % (i, generations))
         average_counts.append(query_average_bin_count(run_id, i))
     print('plotting...')
 
     plt.plot(range(len(average_counts)), average_counts, '-k')
 
     plt.savefig(
-            '%s_%s_%s_BCvG.png' % (run_id, bin_of_interest, generations), 
+            '%s_%s_BCvG.png' % (bin_of_interest, generations), 
             transparent=True)
+    plt.close(fig)
+
+def plot_all_bin_populations_over_time(run_id):
+    generations = count_generations(run_id)
+    number_of_bins = load_config_file(run_id)['number_of_convergence_bins']
+
+    all_accessed_bins = query_all_bins_ever_accessed(run_id)
+
+    for ga in range(number_of_bins):
+        for sa in range(number_of_bins):
+            for vf in range(number_of_bins):
+                bin_of_interest = '(%s,%s,%s)' % (ga, sa, vf)
+                if bin_of_interest in all_accessed_bins:
+                    print(bin_of_interest)
+                    plot_population_over_time(run_id, bin_of_interest, generations)
+
+def plot_all_points_within_bin(run_id, bin_of_interest):
+    config = load_config_file(run_id)
+    number_of_bins = config['number_of_convergence_bins']
+    ga_limits = config['gas_adsorption_0']['limits']
+    sa_limits = config['surface_area']['limits']
+    vf_limits = config['helium_void_fraction']['limits']
+
+    fig = plt.figure(figsize=(12, 4))
+
+    data = query_points_within_bin(run_id, bin_of_interest)
+    ga = data['ga']
+    sa = data['sa']
+    vf = data['vf']
+
+    ga_bin = int(bin_of_interest[1])
+    sa_bin = int(bin_of_interest[3])
+    vf_bin = int(bin_of_interest[5])
+    ga_width = ga_limits[1] / float(number_of_bins)
+    sa_width = sa_limits[1] / float(number_of_bins)
+    vf_width = vf_limits[1] / float(number_of_bins)
+    ga_min = ga_bin * ga_width
+    sa_min = sa_bin * sa_width
+    vf_min = vf_bin * vf_width
+    ga_max = ga_min + ga_width
+    sa_max = sa_min + sa_width
+    vf_max = vf_min + vf_width
+
+    # vf v. sa
+    ax0 = plt.subplot(131)
+    plt.xlim(vf_min, vf_max)
+    plt.ylim(sa_min, sa_max)
+    plt.scatter(vf, sa, facecolor='r', edgecolor='none')
+
+    # vf v. ga
+    ax1 = plt.subplot(132)
+    plt.xlim(vf_min, vf_max)
+    plt.ylim(ga_min, ga_max)
+    plt.scatter(vf, ga, facecolor='r', edgecolor='none')
+
+    # sa v. ga
+    ax0 = plt.subplot(133)
+    plt.xlim(sa_min, sa_max)
+    plt.ylim(ga_min, ga_max)
+    plt.scatter(sa, ga, facecolor='r', edgecolor='none')
+
+    plt.savefig(
+            'AllPointsWithinBin_%s.png' % bin_of_interest,
+            transparent=True)
+    plt.close(fig)
+
+def plot_variance_no_flat_liners(run_id):
+    fig = plt.figure()
+    variances = query_variance_no_flat_liners(run_id)
+    plt.plot(range(len(variances)), variances)
+    plt.savefig(
+            'VarNoFlat.png'
+            )
+
+def plot_mutation_strengths_in_bin(run_id, bin_of_interest):
+    generation, strength = query_mutation_strengths_in_bin(run_id, bin_of_interest)
+    plt.plot(generation, strength)
+    plt.show()
+
