@@ -676,6 +676,22 @@ def query_all_bins_ever_accessed(run_id):
 
     return bin_coordinates
 
+def query_all_mutation_strength_bins(run_id):
+    max_generation = count_generations(run_id)
+    sql = text(
+            'select distinct (gas_adsorption_bin, surface_area_bin, ' +
+            'void_fraction_bin) from mutation_strengths where ' +
+            'run_id=\'%s\';' % (run_id)
+            )
+    result = engine.execute(sql)
+    bin_coordinates = []
+    for row in result:
+        bin_coordinates.append(row[0])
+
+    return bin_coordinates
+
+
+
 def query_all_bin_counts(run_id):
     max_generation = count_generations(run_id)
     
@@ -832,3 +848,55 @@ def query_mutation_strengths_in_bin(run_id, bin_of_interest):
         strengths.append(float(row[1]))
     return generations, strengths
 
+def query_all_mutation_strengths(run_id):
+    config = load_config_file(run_id)
+    initial_mutation_strength = config['initial_mutation_strength']
+    max_generation = count_generations(run_id)
+    
+    data = {}
+    for generation in range(max_generation):
+        print('{0} / {1}'.format(generation, max_generation))
+        # find all bins accessed at generation
+        bins = []
+        sql = text(
+                (
+                    'select (gas_adsorption_bin, surface_area_bin, '
+                    'void_fraction_bin) from materials where run_id=\'{0!s}\' '
+                    'and generation<={1!s};'
+                    ).format(run_id, generation)
+                )
+        result = engine.execute(sql)
+        for row in result:
+            bins.append(row[0])
+        result.close()
+        # find all mutation strengths for all accessed bins
+        mutation_strengths = []
+        for material_bin in bins:
+            sql = text(
+                    (
+                        'select strength from mutation_strengths where '
+                        'run_id=\'{0!s}\' and (gas_adsorption_bin, surface_area_bin, '
+                        'void_fraction_bin)={1!s} and generation<={2!s} order by '
+                        'generation desc limit 1;'
+                        ).format(run_id, material_bin, generation)
+                    )
+            result = engine.execute(sql)
+            rows_amount = 0
+            for row in result:
+                rows_amount += 1
+                mutation_strengths.append(row[0])
+            if rows_amount == 0:
+                mutation_strengths.append(initial_mutation_strength)
+            result.close()
+        data['generation_{0!s}'.format(generation)] = []
+        for i in range(len(bins)):
+            bin_data = {
+                    'ga' : int(bins[i][1]),
+                    'sa' : int(bins[i][3]),
+                    'vf' : int(bins[i][5]),
+                    'strength' : mutation_strengths[i]
+                    }
+            data['generation_{0!s}'.format(generation)].append(bin_data)
+
+    print(data)
+    return data

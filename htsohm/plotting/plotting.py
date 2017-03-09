@@ -290,6 +290,141 @@ def plot_bin_search(x_type, y_type, x, y, ax, config):
                     )
                 )
 
+def plot_all_mutation_strengths(run_id):
+    number_of_generations = count_generations(run_id)
+    data = query_all_mutation_strengths(run_id)
+
+    number_of_bins = load_config_file(run_id)['number_of_convergence_bins']
+
+    over_bins = [
+            '(0,0,1)', '(0,0,2)', '(0,0,3)', '(0,0,4)', '(0,0,5)', 
+            '(0,1,9)', '(1,0,3)', '(1,0,4)', '(1,1,4)', '(1,1,5)',
+            '(1,2,4)', '(1,2,5)', '(1,2,9)', '(1,3,5)', '(1,3,9)',
+            '(1,4,6)', '(1,4,8)', '(1,4,9)', '(1,5,7)', '(1,5,8)',
+            '(1,5,9)', '(1,6,8)', '(1,6,9)', '(2,1,5)', '(2,2,5)',
+            '(2,2,6)', '(2,2,7)', '(2,3,6)', '(2,4,6)', '(2,4,7)',
+            '(2,5,7)', '(2,5,8)', '(2,6,8)', '(2,7,8)', '(2,7,9)',
+            '(2,8,8)', '(3,3,6)', '(3,3,7)', '(3,4,7)', '(3,5,7)',
+            '(3,6,8)', '(3,7,8)'
+            ]
+    under_bins = [
+            '(0,0,9)', '(0,2,9)', '(1,0,5)', '(1,1,3)', '(1,1,6)',
+            '(1,1,9)', '(1,3,6)', '(1,4,5)', '(1,4,7)', '(1,5,6)',
+            '(1,6,7)', '(1,7,8)', '(1,7,9)', '(2,1,4)', '(2,1,6)',
+            '(2,3,5)', '(2,3,7)', '(2,5,6)', '(2,5,9)', '(2,6,7)',
+            '(2,6,9)', '(2,8,9)', '(3,4,6)', '(3,4,8)', '(3,5,8)',
+            '(3,6,7)', '(3,8,8)', '(4,4,7)', '(4,5,7)', '(4,5,8)',
+            '(4,6,7)', '(4,6,8)', '(4,7,8)', '(4,6,7)', '(4,6,8)',
+            '(4,7,8)'
+            ]
+
+    for generation in range(number_of_generations):
+        fig = plt.figure(figsize=(12, 41))
+        G = gridspec.GridSpec(41,12)
+
+        print('plot %s / %s ...' % (generation, number_of_generations))
+        all_data        = data['generation_%s' % generation]
+        # vf v. sa
+        #######################################################################
+
+        for i in range(number_of_bins):
+            ax0 = plt.subplot2grid((41,12), (i * 4, 0), colspan=4, rowspan=4)
+            plt.xlim(0, 10)
+            plt.ylim(0, 10)
+
+            for d in all_data:
+                if d['ga'] == i:
+                    current_bin = '({0},{1},{2})'.format(
+                            d['ga'], d['sa'], d['vf'])
+                    if current_bin in over_bins:
+                        edge_color = 'orange'
+                    elif current_bin in under_bins:
+                        edge_color = 'purple'
+                    else:
+                        edge_color = 'w'
+                    ax0.add_patch(
+                            patches.Rectangle(
+                                (d['vf'], d['sa']),
+                                1, 1,
+                                facecolor=cm.Reds(d['strength']),
+                                edgecolor=edge_color
+                                )
+                            )
+
+        # colorbar
+        ax1 = plt.subplot2grid((41,12), (40,0), colspan=12)
+        cmap = mpl.cm.Reds
+        norm = mpl.colors.Normalize(vmin=0, vmax=0)
+        cb1 = mpl.colorbar.ColorbarBase(
+                ax1, cmap=cmap,
+                norm=norm,
+                orientation='horizontal',
+                )
+        #cb1.set_label('bin-counts')
+
+        # vf v. ga
+        #######################################################################
+
+        for i in range(number_of_bins):
+            ax0 = plt.subplot2grid((41, 12), (i * 4, 4), rowspan=4, colspan=4)
+            plt.xlim(0, 10)
+            plt.ylim(0, 10)
+            for d in all_data:
+                if d['sa'] == i:
+                    current_bin = '({0},{1},{2})'.format(
+                            d['ga'], d['sa'], d['vf'])
+                    if current_bin in over_bins:
+                        edge_color = 'orange'
+                    elif current_bin in under_bins:
+                        edge_color = 'purple'
+                    else:
+                        edge_color = 'w'
+                    ax0.add_patch(
+                            patches.Rectangle(
+                                (d['vf'], d['ga']),
+                                1, 1,
+                                facecolor=cm.Reds(d['strength']),
+                                edgecolor=edge_color
+                                )
+                            )
+
+
+        # sa v. ga
+        #######################################################################
+
+        for i in range(number_of_bins):
+            ax0 = plt.subplot2grid((41, 12), (i * 4, 8), rowspan=4, colspan=4)
+            plt.xlim(0, 10)
+            plt.ylim(0, 10)
+            for d in all_data:
+                if d['vf'] == i:
+                    current_bin = '({0},{1},{2})'.format(
+                            d['ga'], d['sa'], d['vf'])
+                    if current_bin in over_bins:
+                        edge_color = 'orange'
+                    elif current_bin in under_bins:
+                        edge_color = 'purple'
+                    else:
+                        edge_color = 'w'
+                    ax0.add_patch(
+                            patches.Rectangle(
+                                (d['sa'], d['ga']),
+                                1, 1,
+                                facecolor=cm.Reds(d['strength']),
+                                edgecolor=edge_color
+                                )
+                            )
+
+
+        
+        plt.tight_layout()
+        plt.savefig(
+                '%s_%s_MutationStrengths.png' % (run_id, generation),
+                transparent = True
+        )
+        plt.close(fig)
+
+
 def plot_all_bin_counts(run_id):
     number_of_generations = count_generations(run_id)
     data = query_all_bin_counts(run_id)
@@ -769,6 +904,51 @@ def plot_variance_no_flat_liners(run_id):
 
 def plot_mutation_strengths_in_bin(run_id, bin_of_interest):
     generation, strength = query_mutation_strengths_in_bin(run_id, bin_of_interest)
-    plt.plot(generation, strength)
-    plt.show()
+    if bin_of_interest in over_bins:
+        color = 'r-'
+    elif bin_of_interest in under_bins:
+        color = 'b-'
+    else:
+        color = 'k-'
+    plt.plot(generation, strength, color)
+    plt.savefig(
+            '{0}_{1}_MutationStrengths.png'.format(run_id, bin_of_interest)
+            )
+    plt.close()
+
+over_bins = [
+        '(0,0,1)', '(0,0,2)', '(0,0,3)', '(0,0,4)', '(0,0,5)', 
+        '(0,1,9)', '(1,0,3)', '(1,0,4)', '(1,1,4)', '(1,1,5)',
+        '(1,2,4)', '(1,2,5)', '(1,2,9)', '(1,3,5)', '(1,3,9)',
+        '(1,4,6)', '(1,4,8)', '(1,4,9)', '(1,5,7)', '(1,5,8)',
+        '(1,5,9)', '(1,6,8)', '(1,6,9)', '(2,1,5)', '(2,2,5)',
+        '(2,2,6)', '(2,2,7)', '(2,3,6)', '(2,4,6)', '(2,4,7)',
+        '(2,5,7)', '(2,5,8)', '(2,6,8)', '(2,7,8)', '(2,7,9)',
+        '(2,8,8)', '(3,3,6)', '(3,3,7)', '(3,4,7)', '(3,5,7)',
+        '(3,6,8)', '(3,7,8)'
+        ]
+under_bins = [
+        '(0,0,9)', '(0,2,9)', '(1,0,5)', '(1,1,3)', '(1,1,6)',
+        '(1,1,9)', '(1,3,6)', '(1,4,5)', '(1,4,7)', '(1,5,6)',
+        '(1,6,7)', '(1,7,8)', '(1,7,9)', '(2,1,4)', '(2,1,6)',
+        '(2,3,5)', '(2,3,7)', '(2,5,6)', '(2,5,9)', '(2,6,7)',
+        '(2,6,9)', '(2,8,9)', '(3,4,6)', '(3,4,8)', '(3,5,8)',
+        '(3,6,7)', '(3,8,8)', '(4,4,7)', '(4,5,7)', '(4,5,8)',
+        '(4,6,7)', '(4,6,8)', '(4,7,8)', '(4,6,7)', '(4,6,8)',
+        '(4,7,8)'
+        ]
+
+def plot_all_mutation_strengths_over_time(run_id):
+    number_of_bins = load_config_file(run_id)['number_of_convergence_bins']
+
+    all_accessed_bins = query_all_mutation_strength_bins(run_id)
+
+    for ga in range(number_of_bins):
+        for sa in range(number_of_bins):
+            for vf in range(number_of_bins):
+                bin_of_interest = '(%s,%s,%s)' % (ga, sa, vf)
+                if bin_of_interest in all_accessed_bins:
+                    print(bin_of_interest)
+                    plot_mutation_strengths_in_bin(run_id, bin_of_interest)
+
 
