@@ -16,3 +16,4 @@ dist/
 build/
 MANIFEST
 *.cache
+*.png
