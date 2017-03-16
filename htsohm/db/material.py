@@ -176,45 +176,6 @@ class Material(Base):
                 Material.id < self.id,
             ).count()
 
-    def calculate_percent_children_in_bin(self):
-        """Determine number of children in the same bin as their parent.
-
-        Args:
-            self (class): row in material table.
-
-        Returns:
-            Fraction of children in the same bin as parent (self).
-        """
-        sql = text("""
-            select
-                m.gas_adsorption_bin,
-                m.surface_area_bin,
-                m.void_fraction_bin,
-                (
-                    m.gas_adsorption_bin = p.gas_adsorption_bin and
-                    m.surface_area_bin = p.surface_area_bin and
-                    m.void_fraction_bin = p.void_fraction_bin
-                ) as in_bin
-            from materials m
-            join materials p on (m.parent_id = p.id)
-            where m.generation = :gen
-              and m.run_id = :run_id
-              and p.gas_adsorption_bin = :ga_bin
-              and p.surface_area_bin = :sa_bin
-              and p.void_fraction_bin = :vf_bin
-        """)
-
-        rows = engine.connect().execute(
-            sql,
-            gen=self.generation,
-            run_id=self.run_id,
-            ga_bin=self.gas_adsorption_bin,
-            sa_bin=self.surface_area_bin,
-            vf_bin=self.void_fraction_bin
-        ).fetchall()
-
-        return len([ r for r in rows if r.in_bin ]) / len(rows)
-
     def calculate_retest_result(self, tolerance):
         """Determine if material has passed re-testing routine.
 

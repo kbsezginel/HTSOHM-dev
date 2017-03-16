@@ -9,7 +9,7 @@ import sqlalchemy.exc
 from uuid import uuid4
 
 from htsohm import config
-from htsohm.db import session, Material, MutationStrength
+from htsohm.db import session, Material
 from htsohm.material_files import generate_material, mutate_material
 from htsohm.material_files import load_material_from_yaml
 from htsohm.material_files import dump_material_to_yaml
@@ -246,53 +246,6 @@ def retest(m_orig, retests, tolerance):
 
     session.commit()
 
-def mutate(run_id, generation, parent):
-    """Query mutation_strength for bin and adjust as necessary.
-
-    Args:
-        run_id (str): identification string for run.
-        generation (int): iteration in bin-mutate-simulate routine.
-        parent (sqlalchemy.orm.query.Query): parent-material corresponding to
-            the bin being queried.
-
-    Returns:
-        mutation_strength.strength (float): mutation strength to be used for
-        parents in the bin being queried. If the fraction of children from
-        previous generation which populate the SAME bin as their parent is LESS
-        THAN 10% then the mutation strength is REDUCED BY HALF. If the fraction
-        of these children populating the SAME bin as their parent is GREATER
-        THAN 50% then the mutation strength is INCREASED BY 200%.
-
-    """
-    mutation_strength_key = [run_id, generation] + parent.bin
-    mutation_strength = session.query(MutationStrength).get(mutation_strength_key)
-
-    if mutation_strength:
-        print("Mutation strength already calculated for this bin and generation.")
-    else:
-        print("Calculating mutation strength...")
-        mutation_strength = MutationStrength.get_prior(*mutation_strength_key).clone(uuid4())
-        mutation_strength.generation = generation
-
-        try:
-            fraction_in_parent_bin = parent.calculate_percent_children_in_bin()
-            if fraction_in_parent_bin < 0.1:
-                mutation_strength.strength *= 0.5
-            elif fraction_in_parent_bin > 0.5 and mutation_strength.strength <= 0.5:
-                mutation_strength.strength *= 2
-        except ZeroDivisionError:
-            print("No prior generation materials in this bin with children.")
-
-        try:
-            session.add(mutation_strength)
-            session.commit()
-        except (FlushError, sqlalchemy.exc.IntegrityError) as e:
-            print("Somebody beat us to saving a row with this generation. That's ok!")
-            session.rollback()
-            # it's ok b/c this calculation should always yield the exact same result!
-    sys.stdout.flush()
-    return mutation_strength.strength
-
 def evaluate_convergence(run_id, generation):
     '''Determines convergence by calculating variance of bin-counts.
     
@@ -367,7 +320,7 @@ def worker_run_loop(run_id):
                     continue
                 
                 # mutate parent_material
-                mutation_strength = mutate(run_id, gen, parent)
+                mutation_strength = config['initial_mutation_strength']
                 parent_material = load_material_from_yaml(run_id, parent.uuid)
                 material = mutate_material(parent_material,
                         mutation_strength, config)

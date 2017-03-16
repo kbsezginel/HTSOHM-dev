@@ -180,3 +180,5 @@ def run(run_id, uuid, helium_void_fraction=None):
             continue
         break
 
+
+    return results
