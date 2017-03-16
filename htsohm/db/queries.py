@@ -769,7 +769,7 @@ under_bins = [
             '(4,7,8)'
             ]
 
-def query_variance_no_flat_liners(run_id):
+def query_variance(run_id):
     max_generation = count_generations(run_id)
 
     data = {}

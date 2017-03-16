@@ -290,33 +290,31 @@ def plot_bin_search(x_type, y_type, x, y, ax, config):
                     )
                 )
 
+over_bins = [
+        '(0,0,2)', '(0,0,3)', '(0,0,9)', '(0,1,9)', '(1,0,4)', '(1,1,4)',
+        '(1,1,5)', '(1,1,9)', '(1,2,5)', '(1,2,9)', '(1,3,9)', '(1,4,8)',
+        '(1,4,9)', '(1,5,7)', '(1,5,8)', '(1,5,9)', '(1,6,8)', '(2,2,5)',
+        '(2,2,6)', '(2,3,6)', '(2,4,6)', '(2,4,7)', '(2,5,7)', '(2,6,8)',
+        '(3,4,7)'
+        ]
+
+average_bins = [
+        '(0,0,1)', '(0,0,4)', '(1,0,3)', '(1,0,5)', '(1,2,4)', '(1,3,5)',
+        '(1,4,6)', '(1,5,6)', '(1,6,7)', '(1,6,9)', '(2,1,5)', '(2,1,6)',
+        '(2,3,5)', '(2,5,8)', '(2,6,7)', '(2,7,8)', '(3,3,6)', '(3,3,7)'
+        ]
+
+under_bins = [
+        '(0,0,5)', '(0,2,9)', '(1,1,3)', '(1,1,6)', '(1,3,6)', '(1,4,7)',
+        '(1,7,8)', '(2,1,4)', '(2,3,7)', '(2,5,6)', '(3,4,6)', '(3,5,7)',
+        '(3,5,8)', '(3,6,7)', '(3,6,8)'
+        ]
+
 def plot_all_mutation_strengths(run_id):
     number_of_generations = count_generations(run_id)
     data = query_all_mutation_strengths(run_id)
 
     number_of_bins = load_config_file(run_id)['number_of_convergence_bins']
-
-    over_bins = [
-            '(0,0,1)', '(0,0,2)', '(0,0,3)', '(0,0,4)', '(0,0,5)', 
-            '(0,1,9)', '(1,0,3)', '(1,0,4)', '(1,1,4)', '(1,1,5)',
-            '(1,2,4)', '(1,2,5)', '(1,2,9)', '(1,3,5)', '(1,3,9)',
-            '(1,4,6)', '(1,4,8)', '(1,4,9)', '(1,5,7)', '(1,5,8)',
-            '(1,5,9)', '(1,6,8)', '(1,6,9)', '(2,1,5)', '(2,2,5)',
-            '(2,2,6)', '(2,2,7)', '(2,3,6)', '(2,4,6)', '(2,4,7)',
-            '(2,5,7)', '(2,5,8)', '(2,6,8)', '(2,7,8)', '(2,7,9)',
-            '(2,8,8)', '(3,3,6)', '(3,3,7)', '(3,4,7)', '(3,5,7)',
-            '(3,6,8)', '(3,7,8)'
-            ]
-    under_bins = [
-            '(0,0,9)', '(0,2,9)', '(1,0,5)', '(1,1,3)', '(1,1,6)',
-            '(1,1,9)', '(1,3,6)', '(1,4,5)', '(1,4,7)', '(1,5,6)',
-            '(1,6,7)', '(1,7,8)', '(1,7,9)', '(2,1,4)', '(2,1,6)',
-            '(2,3,5)', '(2,3,7)', '(2,5,6)', '(2,5,9)', '(2,6,7)',
-            '(2,6,9)', '(2,8,9)', '(3,4,6)', '(3,4,8)', '(3,5,8)',
-            '(3,6,7)', '(3,8,8)', '(4,4,7)', '(4,5,7)', '(4,5,8)',
-            '(4,6,7)', '(4,6,8)', '(4,7,8)', '(4,6,7)', '(4,6,8)',
-            '(4,7,8)'
-            ]
 
     for generation in range(number_of_generations):
         fig = plt.figure(figsize=(12, 41))
@@ -337,9 +335,11 @@ def plot_all_mutation_strengths(run_id):
                     current_bin = '({0},{1},{2})'.format(
                             d['ga'], d['sa'], d['vf'])
                     if current_bin in over_bins:
-                        edge_color = 'orange'
+                        edge_color = 'r'
                     elif current_bin in under_bins:
-                        edge_color = 'purple'
+                        edge_color = 'b'
+                    elif current_bin in average_bins:
+                        edge_color = 'g'
                     else:
                         edge_color = 'w'
                     ax0.add_patch(
@@ -374,9 +374,11 @@ def plot_all_mutation_strengths(run_id):
                     current_bin = '({0},{1},{2})'.format(
                             d['ga'], d['sa'], d['vf'])
                     if current_bin in over_bins:
-                        edge_color = 'orange'
+                        edge_color = 'r'
                     elif current_bin in under_bins:
-                        edge_color = 'purple'
+                        edge_color = 'b'
+                    elif current_bin in average_bins:
+                        edge_color = 'g'
                     else:
                         edge_color = 'w'
                     ax0.add_patch(
@@ -401,9 +403,11 @@ def plot_all_mutation_strengths(run_id):
                     current_bin = '({0},{1},{2})'.format(
                             d['ga'], d['sa'], d['vf'])
                     if current_bin in over_bins:
-                        edge_color = 'orange'
+                        edge_color = 'r'
                     elif current_bin in under_bins:
-                        edge_color = 'purple'
+                        edge_color = 'b'
+                    elif current_bin in average_bins:
+                        edge_color = 'g'
                     else:
                         edge_color = 'w'
                     ax0.add_patch(
@@ -431,28 +435,6 @@ def plot_all_bin_counts(run_id):
 
     number_of_bins = load_config_file(run_id)['number_of_convergence_bins']
 
-    over_bins = [
-            '(0,0,1)', '(0,0,2)', '(0,0,3)', '(0,0,4)', '(0,0,5)', 
-            '(0,1,9)', '(1,0,3)', '(1,0,4)', '(1,1,4)', '(1,1,5)',
-            '(1,2,4)', '(1,2,5)', '(1,2,9)', '(1,3,5)', '(1,3,9)',
-            '(1,4,6)', '(1,4,8)', '(1,4,9)', '(1,5,7)', '(1,5,8)',
-            '(1,5,9)', '(1,6,8)', '(1,6,9)', '(2,1,5)', '(2,2,5)',
-            '(2,2,6)', '(2,2,7)', '(2,3,6)', '(2,4,6)', '(2,4,7)',
-            '(2,5,7)', '(2,5,8)', '(2,6,8)', '(2,7,8)', '(2,7,9)',
-            '(2,8,8)', '(3,3,6)', '(3,3,7)', '(3,4,7)', '(3,5,7)',
-            '(3,6,8)', '(3,7,8)'
-            ]
-    under_bins = [
-            '(0,0,9)', '(0,2,9)', '(1,0,5)', '(1,1,3)', '(1,1,6)',
-            '(1,1,9)', '(1,3,6)', '(1,4,5)', '(1,4,7)', '(1,5,6)',
-            '(1,6,7)', '(1,7,8)', '(1,7,9)', '(2,1,4)', '(2,1,6)',
-            '(2,3,5)', '(2,3,7)', '(2,5,6)', '(2,5,9)', '(2,6,7)',
-            '(2,6,9)', '(2,8,9)', '(3,4,6)', '(3,4,8)', '(3,5,8)',
-            '(3,6,7)', '(3,8,8)', '(4,4,7)', '(4,5,7)', '(4,5,8)',
-            '(4,6,7)', '(4,6,8)', '(4,7,8)', '(4,6,7)', '(4,6,8)',
-            '(4,7,8)'
-            ]
-
     for generation in range(number_of_generations):
         fig = plt.figure(figsize=(12, 41))
         G = gridspec.GridSpec(41,12)
@@ -475,11 +457,14 @@ def plot_all_bin_counts(run_id):
                 if d_ga[j] == i:
                     current_bin = '(%s,%s,%s)' % (d_ga[j], d_sa[j], d_vf[j])
                     if current_bin in over_bins:
-                        edge_color = 'orange'
+                        edge_color = 'r'
                     elif current_bin in under_bins:
-                        edge_color = 'purple'
+                        edge_color = 'b'
+                    elif current_bin in average_bins:
+                        edge_color = 'g'
                     else:
                         edge_color = 'w'
+
                     ax0.add_patch(
                             patches.Rectangle(
                                 (d_vf[j], d_sa[j]),
@@ -512,11 +497,14 @@ def plot_all_bin_counts(run_id):
                 if d_sa[j] == i:
                     current_bin = '(%s,%s,%s)' % (d_ga[j], d_sa[j], d_vf[j])
                     if current_bin in over_bins:
-                        edge_color = 'orange'
+                        edge_color = 'r'
                     elif current_bin in under_bins:
-                        edge_color = 'purple'
+                        edge_color = 'b'
+                    elif current_bin in average_bins:
+                        edge_color = 'g'
                     else:
                         edge_color = 'w'
+
                     ax0.add_patch(
                             patches.Rectangle(
                                 (d_vf[j], d_ga[j]),
@@ -537,11 +525,14 @@ def plot_all_bin_counts(run_id):
                 if d_vf[j] == i:
                     current_bin = '(%s,%s,%s)' % (d_ga[j], d_sa[j], d_vf[j])
                     if current_bin in over_bins:
-                        edge_color = 'orange'
+                        edge_color = 'r'
                     elif current_bin in under_bins:
-                        edge_color = 'purple'
+                        edge_color = 'b'
+                    elif current_bin in average_bins:
+                        edge_color = 'g'
                     else:
                         edge_color = 'w'
+
                     ax0.add_patch(
                             patches.Rectangle(
                                 (d_sa[j], d_ga[j]),
@@ -894,49 +885,29 @@ def plot_all_points_within_bin(run_id, bin_of_interest):
             transparent=True)
     plt.close(fig)
 
-def plot_variance_no_flat_liners(run_id):
+def plot_variance(run_id):
     fig = plt.figure()
-    variances = query_variance_no_flat_liners(run_id)
+    variances = query_variance(run_id)
     plt.plot(range(len(variances)), variances)
     plt.savefig(
-            'VarNoFlat.png'
+            'Var.png'
             )
 
 def plot_mutation_strengths_in_bin(run_id, bin_of_interest):
     generation, strength = query_mutation_strengths_in_bin(run_id, bin_of_interest)
     if bin_of_interest in over_bins:
-        color = 'r-'
+        color = 'r.'
+    elif bin_of_interest in average_bins:
+        color = 'g.'
     elif bin_of_interest in under_bins:
-        color = 'b-'
+        color = 'b.'
     else:
-        color = 'k-'
+        color = 'k.'
     plt.plot(generation, strength, color)
     plt.savefig(
             '{0}_{1}_MutationStrengths.png'.format(run_id, bin_of_interest)
             )
     plt.close()
-
-over_bins = [
-        '(0,0,1)', '(0,0,2)', '(0,0,3)', '(0,0,4)', '(0,0,5)', 
-        '(0,1,9)', '(1,0,3)', '(1,0,4)', '(1,1,4)', '(1,1,5)',
-        '(1,2,4)', '(1,2,5)', '(1,2,9)', '(1,3,5)', '(1,3,9)',
-        '(1,4,6)', '(1,4,8)', '(1,4,9)', '(1,5,7)', '(1,5,8)',
-        '(1,5,9)', '(1,6,8)', '(1,6,9)', '(2,1,5)', '(2,2,5)',
-        '(2,2,6)', '(2,2,7)', '(2,3,6)', '(2,4,6)', '(2,4,7)',
-        '(2,5,7)', '(2,5,8)', '(2,6,8)', '(2,7,8)', '(2,7,9)',
-        '(2,8,8)', '(3,3,6)', '(3,3,7)', '(3,4,7)', '(3,5,7)',
-        '(3,6,8)', '(3,7,8)'
-        ]
-under_bins = [
-        '(0,0,9)', '(0,2,9)', '(1,0,5)', '(1,1,3)', '(1,1,6)',
-        '(1,1,9)', '(1,3,6)', '(1,4,5)', '(1,4,7)', '(1,5,6)',
-        '(1,6,7)', '(1,7,8)', '(1,7,9)', '(2,1,4)', '(2,1,6)',
-        '(2,3,5)', '(2,3,7)', '(2,5,6)', '(2,5,9)', '(2,6,7)',
-        '(2,6,9)', '(2,8,9)', '(3,4,6)', '(3,4,8)', '(3,5,8)',
-        '(3,6,7)', '(3,8,8)', '(4,4,7)', '(4,5,7)', '(4,5,8)',
-        '(4,6,7)', '(4,6,8)', '(4,7,8)', '(4,6,7)', '(4,6,8)',
-        '(4,7,8)'
-        ]
 
 def plot_all_mutation_strengths_over_time(run_id):
     number_of_bins = load_config_file(run_id)['number_of_convergence_bins']
