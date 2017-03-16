@@ -17,3 +17,7 @@ build/
 MANIFEST
 *.cache
 *.png
+*2017*
+*.yaml
+*.ipynb
+*.txt
