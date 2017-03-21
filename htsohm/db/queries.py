@@ -900,3 +900,51 @@ def query_all_mutation_strengths(run_id):
 
     print(data)
     return data
+
+def query_all_data_points(run_id):
+    max_generation = count_generations(run_id)
+    data = {}
+    for generation in range(max_generation):
+        data['generation_{0}'.format(generation)] = {}
+        data['generation_{0}'.format(generation)]['ga'] = []
+        data['generation_{0}'.format(generation)]['sa'] = []
+        data['generation_{0}'.format(generation)]['vf'] = []
+        sql = text(
+                    (
+                        'select (ga0_absolute_volumetric_loading - '
+                        'ga1_absolute_volumetric_loading), '
+                        'sa_volumetric_surface_area, vf_helium_void_fraction '
+                        'from materials where run_id=\'{0}\' and '
+                        'generation=\'{1}\' and retest_passed=True or '
+                        'retest_passed=NULL;'
+                    ).format(run_id, generation)
+                )
+        result = engine.execute(sql)
+        for row in result:
+            data['generation_{0}'.format(generation)]['ga'].append(row[0])
+            data['generation_{0}'.format(generation)]['sa'].append(row[1])
+            data['generation_{0}'.format(generation)]['vf'].append(row[2])
+        result.close()
+
+        data['generation_{0}'.format(generation)]['ga_old'] = []
+        data['generation_{0}'.format(generation)]['sa_old'] = []
+        data['generation_{0}'.format(generation)]['vf_old'] = []
+        sql = text(
+                    (
+                        'select (ga0_absolute_volumetric_loading - '
+                        'ga1_absolute_volumetric_loading), '
+                        'sa_volumetric_surface_area, vf_helium_void_fraction '
+                        'from materials where run_id=\'{0}\' and '
+                        'generation<\'{1}\' and retest_passed=True or '
+                        'retest_passed=NULL;'
+                    ).format(run_id, generation)
+                )
+        result = engine.execute(sql)
+        for row in result:
+            data['generation_{0}'.format(generation)]['ga_old'].append(row[0])
+            data['generation_{0}'.format(generation)]['sa_old'].append(row[1])
+            data['generation_{0}'.format(generation)]['vf_old'].append(row[2])
+        result.close()
+
+    return data
+

@@ -922,4 +922,91 @@ def plot_all_mutation_strengths_over_time(run_id):
                     print(bin_of_interest)
                     plot_mutation_strengths_in_bin(run_id, bin_of_interest)
 
+def plot_all_data_points_2D(run_id):
+    config                 = load_config_file(run_id)
+    gas_adsorption_limits  = config['gas_adsorption_0']['limits']
+    surface_area_limits    = config['surface_area']['limits']
+    void_fraction_limits   = config['helium_void_fraction']['limits']
+    
+    data = query_all_data_points(run_id)
+    number_of_generations = len(data)
+    fig = plt.figure(figsize=(4 * number_of_generations, 12))
+    G = gridspec.GridSpec(12, 4 * number_of_generations)
+    for generation in range(number_of_generations):
+        d = data['generation_%s' % generation]
+        d_ga = d['ga']
+        d_sa = d['sa']
+        d_vf = d['vf']
+        d_ga_old = d['ga_old']
+        d_sa_old = d['sa_old']
+        d_vf_old = d['vf_old']
+
+        property_combinations = [
+                {
+                    'old_x' : d_vf_old,
+                    'old_y' : d_sa_old,
+                    'x' : d_vf,
+                    'y' : d_sa,
+                    'x_label' : 'void fraction',
+                    'y_label' : 'surface_area',
+                    'x_limits' : void_fraction_limits,
+                    'y_limits' : surface_area_limits
+                },
+                {
+                    'old_x' : d_vf_old,
+                    'old_y' : d_ga_old,
+                    'x' : d_vf,
+                    'y' : d_ga,
+                    'x_label' : 'void fraction',
+                    'y_label' : 'gas adsorption',
+                    'x_limits' : void_fraction_limits,
+                    'y_limits' : gas_adsorption_limits
+                },
+                {
+                    'old_x' : d_sa_old,
+                    'old_y' : d_ga_old,
+                    'x' : d_sa,
+                    'y' : d_ga,
+                    'x_label' : 'surface area',
+                    'y_label' : 'gas adsorption',
+                    'x_limits' : surface_area_limits,
+                    'y_limits' : gas_adsorption_limits
+                }
+            ]
+       
+        row_counter = 0
+        for p in property_combinations:
+            ax = plt.subplot2grid(
+                    (12, 4 * number_of_generations),
+                    (row_counter, 4 * generation),
+                    rowspan=4, colspan=4
+                )
+            plt.scatter(
+                    p['old_x'], p['old_y'],
+                    edgecolor='none', facecolor='k',
+                    alpha=0.7, s=10
+                )
+            plt.scatter(
+                    p['x'], p['y'],
+                    edgecolor='none', facecolor='r',
+                    alpha=0.7, s=10
+                )
+            plt.xlim(*p['x_limits'])
+            plt.ylim(*p['y_limits'])
+            if generation == 0:
+                plt.xlabel(p['x_label'])
+                plt.ylabel(p['y_label'])
+            elif generation != 0: 
+                plt.tick_params(
+                        axis='both', which='both', bottom='off', top='off',
+                        labelbottom='off', right='off', left='off', labelleft='off'
+                    )
+            row_counter += 4
+
+    plt.tight_layout()
+    plt.savefig(
+            '{0}_AllDataPoints.png'.format(run_id),
+            transparent = True
+        )
+
 
