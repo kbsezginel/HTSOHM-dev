@@ -922,17 +922,20 @@ def plot_all_mutation_strengths_over_time(run_id):
                     print(bin_of_interest)
                     plot_mutation_strengths_in_bin(run_id, bin_of_interest)
 
-def plot_all_data_points_2D(run_id):
+def plot_all_data_points_2D(run_id, generations):
     config                 = load_config_file(run_id)
     gas_adsorption_limits  = config['gas_adsorption_0']['limits']
     surface_area_limits    = config['surface_area']['limits']
     void_fraction_limits   = config['helium_void_fraction']['limits']
     
     data = query_all_data_points(run_id)
-    number_of_generations = len(data)
-    fig = plt.figure(figsize=(4 * number_of_generations, 12))
-    G = gridspec.GridSpec(12, 4 * number_of_generations)
-    for generation in range(number_of_generations):
+#    number_of_generations = len(data)
+    fig = plt.figure(figsize=(4 * len(generations), 12))
+    G = gridspec.GridSpec(12, 4 * len(generations))
+
+    col_counter = 0
+    for generation in generations:
+        print('plotting generation {0}...'.format(generation))
         d = data['generation_%s' % generation]
         d_ga = d['ga']
         d_sa = d['sa']
@@ -973,14 +976,16 @@ def plot_all_data_points_2D(run_id):
                     'y_limits' : gas_adsorption_limits
                 }
             ]
-       
+    
         row_counter = 0
         for p in property_combinations:
+            print(row_counter, col_counter)
             ax = plt.subplot2grid(
-                    (12, 4 * number_of_generations),
-                    (row_counter, 4 * generation),
+                    (12, 4 * len(generations)),
+                    (row_counter, col_counter),
                     rowspan=4, colspan=4
                 )
+            print(len(p['old_x']), len(p['old_y']))
             plt.scatter(
                     p['old_x'], p['old_y'],
                     edgecolor='none', facecolor='k',
@@ -1002,6 +1007,8 @@ def plot_all_data_points_2D(run_id):
                         labelbottom='off', right='off', left='off', labelleft='off'
                     )
             row_counter += 4
+        col_counter += 4
+
 
     plt.tight_layout()
     plt.savefig(
