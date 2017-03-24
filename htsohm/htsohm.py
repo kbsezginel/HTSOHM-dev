@@ -247,7 +247,7 @@ def retest(m_orig, retests, tolerance, pseudo_material):
 
     session.commit()
 
-def mutate(run_id, generation, parent):
+def get_mutation_strength(run_id, generation, parent):
     """Query mutation_strength for bin and adjust as necessary.
 
     Args:
@@ -385,7 +385,7 @@ def worker_run_loop(run_id):
                     print("parent failed retest. restarting with parent selection.")
                     continue
 
-                mutation_strength = mutate(run_id, gen, parent_material)
+                mutation_strength = get_mutation_strength(run_id, gen, parent_material)
                 material, pseudo_material = mutate_pseudo_material(
                         parent_material, parent_pseudo_material, mutation_strength, gen)
                 pseudo_material.dump()
@@ -396,6 +396,9 @@ def worker_run_loop(run_id):
             material.generation_index = material.calculate_generation_index()
             if material.generation_index < config['children_per_generation']:
                 session.add(material)
+            elif material.generation_index == config['children_per_generation'] - 1:
+                # DO STUFF
+
             else:
                 # delete excess rows
                 # session.delete(material)
