@@ -253,6 +253,7 @@ def calculate_percent_children_in_bin(run_id, generation, bin):
     Args:
         self (class): row in material table.
 
+<<<<<<< HEAD
     Returns:
         Fraction of children in the same bin as parent (self).
     """
