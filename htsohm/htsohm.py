@@ -396,6 +396,9 @@ def worker_run_loop(run_id):
             material.generation_index = material.calculate_generation_index()
             if material.generation_index < config['children_per_generation']:
                 session.add(material)
+            elif material.generation_index == config['children_per_generation'] - 1:
+                # DO STUFF
+
             else:
                 # delete excess rows
                 # session.delete(material)
