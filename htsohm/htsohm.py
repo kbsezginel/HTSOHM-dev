@@ -11,7 +11,7 @@ import yaml
 
 import htsohm
 from htsohm import config
-from htsohm.db import session, Material, MutationStrength
+from htsohm.db import engine, session, Material, MutationStrength
 from htsohm.material_files import generate_pseudo_material, mutate_pseudo_material
 from htsohm import simulation
 
@@ -247,6 +247,20 @@ def retest(m_orig, retests, tolerance, pseudo_material):
 
     session.commit()
 
+def get_all_parent_ids(run_id, generation):
+    sql = text(
+            (
+                'select parent_id from materials where run_id={0} and '
+                'generation={1};'.format(run_id, generation)
+            )
+        )
+    parent_ids = []
+    result = engine.execute(sql)
+    for row in result:
+        parent_ids.append(row[0])
+    result.close()
+    return parent_ids
+
 def get_mutation_strength(run_id, generation, parent):
     """Query mutation_strength for bin and adjust as necessary.
 
@@ -385,7 +399,7 @@ def worker_run_loop(run_id):
                     print("parent failed retest. restarting with parent selection.")
                     continue
 
-                mutation_strength = get_mutation_strength(run_id, gen, parent_material)
+                mutation_strength = get_mutation_strength(run_id, gen-1, parent_material)
                 material, pseudo_material = mutate_pseudo_material(
                         parent_material, parent_pseudo_material, mutation_strength, gen)
                 pseudo_material.dump()
@@ -397,8 +411,10 @@ def worker_run_loop(run_id):
             if material.generation_index < config['children_per_generation']:
                 session.add(material)
             elif material.generation_index == config['children_per_generation'] - 1:
-                # DO STUFF
-
+                parent_ids = get_all_parent_ids(run_id, gen)
+                for parent_id in parent_ids:
+                    parent_material = session.query(Material).get(parent_id)
+                    get_mutation_strength(run_id, gen, parent_material)
             else:
                 # delete excess rows
                 # session.delete(material)
