@@ -351,6 +351,8 @@ def worker_run_loop(run_id):
     number of generations is reached.
 
     """
+    print('CONFIG\n{0}'.format(config))
+
     gen = last_generation(run_id) or 0
 
     converged = False
@@ -409,11 +411,26 @@ def worker_run_loop(run_id):
 
             material.generation_index = material.calculate_generation_index()
             if material.generation_index < config['children_per_generation']:
+                print(
+                        (
+                            '========================================='
+                            'ADDING MATERIAL {0}'
+                            '========================================='
+                        ).format(material.uuid)
+                    )
                 session.add(material)
             elif material.generation_index == config['children_per_generation'] - 1:
                 parent_ids = get_all_parent_ids(run_id, gen)
+                print(
+                        '=============================='
+                        'CALCULATING MUTATION STRENGTHS'
+                        '=============================='
+                       )
                 for parent_id in parent_ids:
                     parent_material = session.query(Material).get(parent_id)
+                    print(
+                            'Calculating bin-mutation-strength for parent id : {0}'.format(parent_id)
+                            )
                     get_mutation_strength(run_id, gen, parent_material)
             else:
                 # delete excess rows
