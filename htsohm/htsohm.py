@@ -264,6 +264,7 @@ def calculate_percent_children_in_bin(run_id, generation, bin):
             m.surface_area_bin,
             m.void_fraction_bin,
             (
+<<<<<<< HEAD
                 m.gas_adsorption_bin = p.gas_adsorption_bin and
                 m.surface_area_bin = p.surface_area_bin and
                 m.void_fraction_bin = p.void_fraction_bin
