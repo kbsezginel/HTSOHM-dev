@@ -250,9 +250,6 @@ def get_all_parent_ids(run_id, generation):
 
 def calculate_percent_children_in_bin(run_id, generation, bin):
     """Determine number of children in the same bin as their parent.
-
-<<<<<<< HEAD
-<<<<<<< HEAD
     Args:
         self (class): row in material table.
 
@@ -265,7 +262,6 @@ def calculate_percent_children_in_bin(run_id, generation, bin):
             m.surface_area_bin,
             m.void_fraction_bin,
             (
-<<<<<<< HEAD
                 m.gas_adsorption_bin = p.gas_adsorption_bin and
                 m.surface_area_bin = p.surface_area_bin and
                 m.void_fraction_bin = p.void_fraction_bin
