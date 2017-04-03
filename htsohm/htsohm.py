@@ -287,10 +287,10 @@ def calculate_mutation_strength(run_id, generation, parent):
 
         try:
             fraction_in_parent_bin = parent.calculate_percent_children_in_bin()
-            if fraction_in_parent_bin < 0.1:
-                mutation_strength.strength *= 0.5
-            elif fraction_in_parent_bin > 0.5 and mutation_strength.strength <= 0.5:
-                mutation_strength.strength *= 2
+            if fraction_in_parent_bin < 0.1 and mutation_strength.strength - 0.05 >= 0.05:
+                mutation_strength.strength -= 0.05
+            elif fraction_in_parent_bin > 0.5 and mutation_strength.strength + 0.05 <= 1:
+                mutation_strength.strength += 0.05
         except ZeroDivisionError:
             print("No prior generation materials in this bin with children.")
 
