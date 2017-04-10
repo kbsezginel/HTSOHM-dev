@@ -442,24 +442,40 @@ def worker_run_loop(run_id):
             if material.generation_index < config['children_per_generation']:
                 print_block('ADDING MATERIAL {}'.format(material.uuid))
                 session.add(material)
-            if (
-                material.generation_index == config['children_per_generation'] - 1
-                and gen > 0
-                ):
-                parent_ids = get_all_parent_ids(run_id, gen)
-
-                print_block('CALCULATING MUTATION STRENGTHS')
-                ms_bins = []
-                for parent_id in parent_ids:
-                    parent_bin = session.query(Material).get(parent_id).bin
-                    if parent_bin not in ms_bins:
-                        print(
-                                (
-                                    'Calculating bin-mutation-strength for bin : {0}'
-                                ).format(parent_bin)
-                            )
-                        calculate_mutation_strength(run_id, gen + 1, parent_bin)
-                    ms_bins.append(parent_bin)
+            if material.generation_index == config['children_per_generation'] - 1 and gen > 0:
+                # standard calculation of mutation strengths for all accessed bins
+                if gen % config['annealing_frequency'] != 0:
+                    parent_ids = get_all_parent_ids(run_id, gen)
+                    print_block('CALCULATING MUTATION STRENGTHS')
+                    ms_bins = []
+                    for parent_id in parent_ids:
+                        parent_material = session.query(Material).get(parent_id)
+                        if parent_material.bin not in ms_bins:
+                            print('Calculating bin-mutation-strength for bin : {}' \
+                                    .format(parent_material.bin))
+                            calculate_mutation_strength(run_id, gen + 1, parent_material)
+                        ms_bins.append(parent_material.bin)
+                # annealing to reset all mutation strengths to initial value
+                else:
+                    all_accessed_bins = [
+                            [int(e[0][1]), int(e[0][3]), int(e[0][5])] for e in session \
+                            .query(func.distinct(
+                                Material.gas_adsorption_bin,
+                                Material.surface_area_bin,
+                                Material.void_fraction_bin)) \
+                            .filter(
+                                Material.run_id == run_id,
+                                Material.retest_passed != False,
+                                Material.generation_index < config['children_per_generation']) \
+                            .all()]
+                    print_block('ANNEALING WITH MUTATION STRENGTH :\t{}' \
+                            .format(config['initial_mutation_strength']))
+                    for some_bin in all_accessed_bins:
+                        print('Annealing bin :\t{}'.format(some_bin))
+                        args = [run_id, gen + 1] + some_bin
+                        mutation_strength = MutationStrength(*args)
+                        mutation_strength.strength = config['initial_mutation_strength']
+                        session.add(mutation_strength)
             else:
                 # delete excess rows
                 # session.delete(material)
