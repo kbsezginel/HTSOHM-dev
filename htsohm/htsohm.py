@@ -248,7 +248,46 @@ def get_all_parent_ids(run_id, generation):
             .filter(Material.run_id == run_id, Material.generation == generation) \
             .distinct() if e[0] != None]
 
-def calculate_mutation_strength(run_id, generation, parent):
+def calculate_percent_children_in_bin(run_id, generation, bin):
+    """Determine number of children in the same bin as their parent.
+
+    Args:
+        self (class): row in material table.
+
+    Returns:
+        Fraction of children in the same bin as parent (self).
+    """
+    sql = text("""
+        select
+            m.gas_adsorption_bin,
+            m.surface_area_bin,
+            m.void_fraction_bin,
+            (
+                m.gas_adsorption_bin = p.gas_adsorption_bin and
+                m.surface_area_bin = p.surface_area_bin and
+                m.void_fraction_bin = p.void_fraction_bin
+            ) as in_bin
+        from materials m
+        join materials p on (m.parent_id = p.id)
+        where m.generation = :gen
+            and m.run_id = :run_id
+            and p.gas_adsorption_bin = :ga_bin
+            and p.surface_area_bin = :sa_bin
+            and p.void_fraction_bin = :vf_bin
+        """)
+
+    rows = engine.connect().execute(
+        sql,
+        gen=generation,
+        run_id=run_id,
+        ga_bin=bin[0],
+        sa_bin=bin[1],
+        vf_bin=bin[2]
+    ).fetchall()
+
+    return len([ r for r in rows if r.in_bin ]) / len(rows)
+
+def calculate_mutation_strength(run_id, generation, bin):
     """Query mutation_strength for bin and adjust as necessary.
 
     Args:
@@ -266,7 +305,7 @@ def calculate_mutation_strength(run_id, generation, parent):
         THAN 50% then the mutation strength is INCREASED BY 200%.
 
     """
-    mutation_strength_key = [run_id, generation] + parent.bin
+    mutation_strength_key = [run_id, generation] + bin
     mutation_strength = session.query(MutationStrength).get(mutation_strength_key)
 
     if mutation_strength:
@@ -277,7 +316,7 @@ def calculate_mutation_strength(run_id, generation, parent):
         mutation_strength.generation = generation
 
         try:
-            fraction_in_parent_bin = parent.calculate_percent_children_in_bin()
+            fraction_in_parent_bin = calculate_percent_children_in_bin(run_id, generation, bin)
             if fraction_in_parent_bin < 0.1:
                 mutation_strength.strength *= 0.5
             elif fraction_in_parent_bin > 0.5 and mutation_strength.strength <= 0.5:
@@ -413,15 +452,15 @@ def worker_run_loop(run_id):
                 print_block('CALCULATING MUTATION STRENGTHS')
                 ms_bins = []
                 for parent_id in parent_ids:
-                    parent_material = session.query(Material).get(parent_id)
-                    if parent_material.bin not in ms_bins:
+                    parent_bin = session.query(Material).get(parent_id).bin
+                    if parent_bin not in ms_bins:
                         print(
                                 (
                                     'Calculating bin-mutation-strength for bin : {0}'
-                                ).format(parent_material.bin)
+                                ).format(parent_bin)
                             )
-                        calculate_mutation_strength(run_id, gen + 1, parent_material)
-                    ms_bins.append(parent_material.bin)
+                        calculate_mutation_strength(run_id, gen + 1, parent_bin)
+                    ms_bins.append(parent_bin)
             else:
                 # delete excess rows
                 # session.delete(material)
