@@ -103,6 +103,15 @@ def run(run_id, pseudo_material):
     write_mixing_rules(pseudo_material, output_dir)
     write_pseudo_atoms(pseudo_material, output_dir)
     write_force_field(output_dir)
+
+    import RASPA2
+    raspa_dir = os.path.dirname(RASPA2.__file__)
+    cif_dir = os.path.join(raspa_dir, 'share', 'raspa', 'structures', 'cif')
+    write_cif_file(pseudo_material, cif_dir)
+    ff_dir = os.path.join(raspa_dir, 'share', 'raspa', 'forcefield', pseudo_material.uuid)
+    os.makedirs(ff_dir, exist_ok=True)
+    write_mixing_rules(pseudo_material, ff_dir)
+
     while True:
         try:
             print("Date :\t%s" % datetime.now().date().isoformat())
