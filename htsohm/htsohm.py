@@ -9,11 +9,13 @@ from sqlalchemy.orm.exc import FlushError
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql import text
 import yaml
+import RASPA2
 
 import htsohm
 from htsohm import config
 from htsohm.db import engine, session, Material, MutationStrength
 from htsohm.material_files import generate_pseudo_material, mutate_pseudo_material
+from htsohm.material_files import write_cif_file, write_mixing_rules
 from htsohm import simulation
 
 def materials_in_generation(run_id, generation):
@@ -516,6 +518,17 @@ def worker_run_loop(run_id):
             if material.generation_index < config['children_per_generation']:
                 print_block('ADDING MATERIAL {}'.format(material.uuid))
                 session.add(material)
+
+            #===================================================================
+            # for visualising materials...
+            #===================================================================
+            print('Adding material to RASPA internal libraries...')
+            raspa_dir = os.path.dirname(RASPA2.__file__)
+            cif_dir = os.path.join(raspa_dir, 'share', 'raspa', 'structures', 'cif')
+            write_cif_file(pseudo_material, cif_dir)
+            ff_dir = os.path.join(raspa_dir, 'share', 'raspa', 'forcefield', pseudo_material.uuid)
+            os.makedirs(ff_dir, exist_ok=True)
+            write_mixing_rules(pseudo_material, ff_dir)
 
             if config['interactive_mode'] == 'on':
                 print("\n\nGeneration :\t{}\nMat. no. :\t{} / {}".format(gen,
