@@ -188,6 +188,15 @@ def mutate_pseudo_material(parent_material, parent_pseudo_material, mutation_str
 
     child_pseudo_material.run_id = parent_pseudo_material.run_id
 
+    print('Parent UUID :\t{}'.format(parent_pseudo_material.uuid))
+    print('Child UUID :\t{}'.format(child_pseudo_material.uuid))
+
+    if config['interactive_mode'] == 'on':
+        p_sig, p_eps = [], []
+        for atom_type in parent_pseudo_material.atom_types:
+            p_sig.append(atom_type['sigma'])
+            p_eps.append(atom_type['epsilon'])
+
     ########################################################################
     # perturb LJ-parameters
     child_pseudo_material.atom_types = parent_pseudo_material.atom_types.copy()
@@ -196,6 +205,19 @@ def mutate_pseudo_material(parent_material, parent_pseudo_material, mutation_str
             old_x = atom_type[x]
             random_x = uniform(*config["{0}_limits".format(x)])
             atom_type[x] += mutation_strength * (random_x - old_x)
+    
+    if config['interactive_mode'] == 'on':
+        print('=========================================================================================')
+        print('LENNARD JONES PARAMETERS')
+        print('=========================================================================================')
+        print('  chemical-id\t|  parent sigma\t|  child sigma\t|  parent epsilon\t| child epsilon')
+        print('----------------+---------------+---------------+-----------------------+----------------')
+        for i in range(len(child_pseudo_material.atom_types)):
+            c_chem = child_pseudo_material.atom_types[i]
+            print('  {}\t\t|  {}\t|  {}\t|  {}\t\t|  {}'.format(c_chem['chemical-id'],
+                round(p_sig[i], 4), round(c_chem['sigma'], 4),
+                round(p_eps[i], 4), round(c_chem['epsilon'], 4)))
+
 
     ########################################################################
     # calculate new lattice constants
@@ -206,6 +228,17 @@ def mutate_pseudo_material(parent_material, parent_pseudo_material, mutation_str
         random_x = uniform(*lattice_limits)
         child_pseudo_material.lattice_constants[i] += mutation_strength * (
                 random_x - old_x)
+
+    if config['interactive_mode'] == 'on':
+        print('==========================================')
+        print('LATTICE CONSTANTS')
+        print('==========================================')
+        print('  direction\t|  parent \t|  child')
+        print('----------------+---------------+---------')
+        for i in ['a', 'b', 'c']:
+            print('  {}\t\t|  {}\t|  {}'.format(i,
+                round(parent_pseudo_material.lattice_constants[i], 4),
+                round(child_pseudo_material.lattice_constants[i], 4)))
 
     ########################################################################
     #perturb number density, calculate number of atoms
@@ -222,7 +255,14 @@ def mutate_pseudo_material(parent_material, parent_pseudo_material, mutation_str
             min(child_number_of_atoms,
                 len(parent_pseudo_material.atom_sites)),
             replace=False).tolist()
-    
+   
+    if config['interactive_mode'] == 'on':
+        p_x, p_y, p_z = [], [], []
+        for atom_site in child_pseudo_material.atom_sites:
+            p_x.append(atom_site['x-frac'])
+            p_y.append(atom_site['y-frac'])
+            p_z.append(atom_site['z-frac'])
+
     ########################################################################
     # perturb atom-site positions
     for atom_site in child_pseudo_material.atom_sites:
@@ -240,6 +280,28 @@ def mutate_pseudo_material(parent_material, parent_pseudo_material, mutation_str
             for i in ['x-frac', 'y-frac', 'z-frac']:
                 new_atom_site[i] = random()
             child_pseudo_material.atom_sites.append(new_atom_site)
+
+    if config['interactive_mode'] == 'on':
+        print('===================================================================')
+        print('FIRST 10 ATOM-SITES')
+        print('===================================================================')
+        print('  chemical-id\t|  parent position\t\t|  child position')
+        print('----------------+-------------------------------+------------------')
+        for i in range(10):
+            c = child_pseudo_material.atom_sites[i]
+            if i < len(p_x):
+                print('  {}\t\t|  {}\t|  {}'.format(c['chemical-id'],
+                    (round(p_x[i], 4), round(p_y[i], 4), round(p_z[i], 4)),
+                    (round(c['x-frac'], 4), round(c['y-frac'], 4), round(c['z-frac'], 4))))
+
+        print('==========================')
+        print('NUMBER DENSITY')
+        print('==========================')
+        print('  parent\t|  child')
+        print('----------------+---------')
+        print('  {}\t| {}'.format(
+            round(parent_pseudo_material.number_density(), 6),
+            round(child_pseudo_material.number_density(), 6)))
 
     return child_material, child_pseudo_material
 
