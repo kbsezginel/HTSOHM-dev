@@ -134,6 +134,83 @@ def select_parent(run_id, max_generation, generation_limit):
     potential_parents = [i[0] for i in parent_query]
     return int(np.random.choice(potential_parents))
 
+def select_parent_interactive(run_id, max_generation, generation_limit):
+    """"""
+    simulations = config['material_properties']
+    queries = []
+    if 'gas_adsorption_0' in simulations or 'gas_adsorption_1' in simulations:
+        queries.append( getattr(Material, 'gas_adsorption_bin') )
+    if 'surface_area' in simulations:
+        queries.append( getattr(Material, 'surface_area_bin') )
+    if 'helium_void_fraction' in simulations:
+        queries.append( getattr(Material, 'void_fraction_bin') )
+
+    # Each bin is counted...
+    bins_and_counts = session \
+        .query(
+            func.count(Material.id),
+            *queries
+        ) \
+        .filter(
+            Material.run_id == run_id,
+            or_(Material.retest_passed == True, Material.retest_passed == None),
+            Material.generation <= max_generation,
+            Material.generation_index < generation_limit,
+        ) \
+        .group_by(*queries).all()[1:]
+
+    print('\n  BIN\t\t|  COUNT')
+    print('----------------+-----------')
+    for bin_and_count in bins_and_counts:
+        print('  {}\t|  {}'.format(bin_and_count[1:len(queries) + 2], bin_and_count[0]))
+    print('\n')
+
+    input('Press Enter to calculate normalized weights...')
+
+    bins = []
+    for i in bins_and_counts:
+        some_bin = {}
+        for j in range(len(queries)):
+            some_bin[queries[j]] = i[j + 1]
+        bins.append(some_bin)
+    total = sum([i[0] for i in bins_and_counts])
+    # ...then assigned a weight.
+    weights = [ total / float(i[0]) for i in bins_and_counts ]
+    normalized_weights = [ weight / sum(weights) for weight in weights ]
+
+    print('\n  BIN\t\t|  COUNT\t|  WEIGHT\t|  NORMALIZED-WEIGHT')
+    print('----------------+---------------+---------------+---------------------')
+    for i in range(len(bins_and_counts)):
+        print('  {}\t|  {}\t\t|  {}\t\t|  {}'.format(
+            bins_and_counts[i][1:len(queries) + 1], bins_and_counts[i][0],
+            weights[i], normalized_weights[i]))
+    print('\n')
+
+    ga_bin = input('Press select a gas adsorption bin :\t')
+    sa_bin = input('Press select a surface area bin :\t')
+    vf_bin = input('Press select a void fraction bin :\t')
+
+    parent_query = session \
+        .query(Material.uuid) \
+        .filter(
+            Material.run_id == run_id,
+            or_(Material.retest_passed == True, Material.retest_passed == None),
+            Material.gas_adsorption_bin == ga_bin,
+            Material.surface_area_bin == sa_bin,
+            Material.void_fraction_bin == vf_bin,
+            Material.generation <= max_generation,
+            Material.generation_index < generation_limit,
+        ).all()
+    potential_parents = [i[0] for i in parent_query]
+
+    print('Potential parents :')
+    for i in potential_parents:
+        print('\t{}'.format(i))
+
+    parent_uuid = input('Please select a parent UUID :\t')
+
+    return session.query(Material.id).filter(Material.run_id == run_id, Material.uuid == parent_uuid).one()[0]
+
 def run_all_simulations(material, pseudo_material):
     """Simulate helium void fraction, gas loading, and surface area.
 
@@ -477,8 +554,18 @@ def worker_run_loop(run_id):
                 pseudo_material.dump()
             else:
                 print("selecting a parent / running retests on parent / mutating / simulating")
-                parent_id = select_parent(run_id, max_generation=(gen - 1),
-                                                  generation_limit=config['children_per_generation'])
+                
+                if config['selection_mode'] == 'manual':
+                     parent_id = select_parent_interactive(run_id, max_generation=(gen - 1),
+                                                      generation_limit=config['children_per_generation'])
+
+#                    uuid = input('\n Enter UUID :\t')
+#                    parent_id = session.query(Material.id).filter(
+#                            Material.run_id == run_id, Material.uuid==uuid).one()[0]
+                
+                else:
+                    parent_id = select_parent(run_id, max_generation=(gen - 1),
+                                                      generation_limit=config['children_per_generation'])
 
                 parent_material = session.query(Material).get(parent_id)
                 parent_pseudo_material = load_pseudo_material(run_id, parent_material)
