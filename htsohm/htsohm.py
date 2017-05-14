@@ -548,12 +548,12 @@ def worker_run_loop(run_id):
 
         while materials_in_generation(run_id, gen) < size_of_generation:
             if gen == 0:
-                print("writing new seed...")
+                print_block('Generating pseudomaterial...')
                 material, pseudo_material = generate_pseudo_material(
                         run_id, config['number_of_atom_types'])
                 pseudo_material.dump()
             else:
-                print("selecting a parent / running retests on parent / mutating / simulating")
+                print_block('Selecting parent...')
                 
                 if config['selection_mode'] == 'manual':
                      parent_id = select_parent_interactive(run_id, max_generation=(gen - 1),
@@ -571,6 +571,7 @@ def worker_run_loop(run_id):
                 parent_pseudo_material = load_pseudo_material(run_id, parent_material)
 
                 # run retests until we've run enough
+                print_block('Running retest...')
                 while parent_material.retest_passed is None:
                     print("running retest...")
                     print("Date :\t%s" % datetime.now().date().isoformat())
@@ -594,6 +595,7 @@ def worker_run_loop(run_id):
                             .get_prior(*mutation_strength_key).clone().strength
                 
                 # mutate material
+                print_block('Mutating pseudomaterial..')
                 material, pseudo_material = mutate_pseudo_material(
                         parent_material, parent_pseudo_material, mutation_strength, gen)
                 pseudo_material.dump()
