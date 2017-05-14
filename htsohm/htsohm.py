@@ -159,14 +159,6 @@ def select_parent_interactive(run_id, max_generation, generation_limit):
         ) \
         .group_by(*queries).all()[1:]
 
-    print('\n  BIN\t\t|  COUNT')
-    print('----------------+-----------')
-    for bin_and_count in bins_and_counts:
-        print('  {}\t|  {}'.format(bin_and_count[1:len(queries) + 2], bin_and_count[0]))
-    print('\n')
-
-    input('Press Enter to calculate normalized weights...')
-
     bins = []
     for i in bins_and_counts:
         some_bin = {}
@@ -178,12 +170,12 @@ def select_parent_interactive(run_id, max_generation, generation_limit):
     weights = [ total / float(i[0]) for i in bins_and_counts ]
     normalized_weights = [ weight / sum(weights) for weight in weights ]
 
-    print('\n  BIN\t\t|  COUNT\t|  WEIGHT\t|  NORMALIZED-WEIGHT')
-    print('----------------+---------------+---------------+---------------------')
+    print('\n  BIN\t\t|  COUNT\t|  WEIGHT\t\t|  NORMALIZED-WEIGHT')
+    print('----------------+---------------+-----------------------+---------------------')
     for i in range(len(bins_and_counts)):
         print('  {}\t|  {}\t\t|  {}\t\t|  {}'.format(
             bins_and_counts[i][1:len(queries) + 1], bins_and_counts[i][0],
-            weights[i], normalized_weights[i]))
+            round(weights[i], 6), round(normalized_weights[i], 6)))
     print('\n')
 
     ga_bin = input('Press select a gas adsorption bin :\t')
@@ -207,7 +199,15 @@ def select_parent_interactive(run_id, max_generation, generation_limit):
     for i in potential_parents:
         print('\t{}'.format(i))
 
-    parent_uuid = input('Please select a parent UUID :\t')
+    while True:
+        parent_uuid = input('Please select a parent UUID :\t')
+        proceed = input('Are you sure you want select {} as a parent? (y/n) :\t'.format(parent_uuid))
+        if proceed in ['n', 'N']:
+            continue
+        elif proceed in ['y', 'Y']:
+            break
+        else:
+            print('Please enter y/n.')
 
     return session.query(Material.id).filter(Material.run_id == run_id, Material.uuid == parent_uuid).one()[0]
 
@@ -431,6 +431,12 @@ def calculate_percent_children_in_bin(run_id, generation, bin_coordinate):
         vf_bin=bin_coordinate[2]
     ).fetchall()
 
+    if (config['interactive_mode'] == 'on' and 
+            len([r for r in rows if r.in_bin]) != 0):
+        print('Number of children in the parent-bin :\t{}' \
+                .format(len([r for r in rows if r.in_bin])))
+        print('Total number of children :\t\t{}'.format(len(rows)))
+
     return len([ r for r in rows if r.in_bin ]) / len(rows)
 
 def calculate_mutation_strength(run_id, generation, mutation_strength_bin):
@@ -438,7 +444,7 @@ def calculate_mutation_strength(run_id, generation, mutation_strength_bin):
 
     Args:
         run_id (str): identification string for run.
-        generation (int): iteration in bin-mutate-simulate routine.
+        generation (int): iteration in bin-mutate-/workersimulate routine.
         parent (sqlalchemy.orm.query.Query): parent-material corresponding to
             the bin being queried.
 
@@ -459,14 +465,35 @@ def calculate_mutation_strength(run_id, generation, mutation_strength_bin):
     else:
         print("Calculating mutation strength...")
         mutation_strength = MutationStrength.get_prior(*mutation_strength_key).clone()
+        if config['interactive_mode'] == 'on':
+            print('Prior mutation strength :\t{}'.format(mutation_strength.strength))
         mutation_strength.generation = generation
 
         try:
             fraction_in_parent_bin = calculate_percent_children_in_bin(run_id, generation, mutation_strength_bin)
-            if fraction_in_parent_bin < 0.1 and mutation_strength.strength - 0.05 > 0:
-                mutation_strength.strength -= 0.05
-            elif fraction_in_parent_bin > 0.5 and mutation_strength.strength + 0.05 < 1:
-                mutation_strength.strength += 0.05
+
+            if config['interactive_mode'] != 'on':
+                if fraction_in_parent_bin < 0.1 and mutation_strength.strength - 0.05 > 0:
+                    mutation_strength.strength -= 0.05
+                elif fraction_in_parent_bin > 0.5 and mutation_strength.strength + 0.05 < 1:
+                    mutation_strength.strength += 0.05
+
+            elif config['interactive_mode'] == 'on':
+                print('\tFor adaptive mutation strength(s), DECREASE strength \n' +
+                        '\tby 5% if the fraction of children in parent-bin is \n' +
+                        '\tLESS THAN 0.1; INCREASE strength by 5% if the \n' +
+                        '\tfraction of children in parent-bin is GREATER THAN \n' +
+                        '\t0.5.')
+                while True:
+                    mutation_strength.strength = input('Please Enter new mutation strength :\t')
+                    proceed = input('Are you sure you want to assign {} to bin {} ? (y/n) :\t'.format(
+                        mutation_strength.strength, mutation_strength_bin))
+                    if proceed in ['n', 'N']:
+                        continue
+                    elif proceed in ['y', 'Y']:
+                        break
+                    else:
+                        print('Please Enter y/n.')
         except ZeroDivisionError:
             print("No prior generation materials in this bin with children.")
 
@@ -475,7 +502,7 @@ def calculate_mutation_strength(run_id, generation, mutation_strength_bin):
             session.commit()
         except (FlushError, IntegrityError) as e:
             print("Somebody beat us to saving a row with this generation. That's ok!")
-            session.rollback()
+            Session.rollback()
             # it's ok b/c this calculation should always yield the exact same result!
     sys.stdout.flush()
     return mutation_strength.strength
@@ -631,18 +658,33 @@ def worker_run_loop(run_id):
                     ):
                     parent_ids = get_all_parent_ids(run_id, gen)
     
-                    print_block('CALCULATING MUTATION STRENGTHS')
+                    print_block('Calculating mutation strengths...')
                     ms_bins = []
                     for parent_id in parent_ids:
                         parent_bin = session.query(Material).get(parent_id).bin
                         if parent_bin not in ms_bins:
-                            print(
-                                    (
-                                        'Calculating bin-mutation-strength for bin : {0}'
-                                    ).format(parent_bin)
-                                )
-                            calculate_mutation_strength(run_id, gen + 1, parent_bin)
+                            if config['interactive_mode'] != 'on':
+                                print(
+                                        (
+                                            'Calculating bin-mutation-strength for bin : {0}'
+                                       ).format(parent_bin)
+                                    )
+                                calculate_mutation_strength(run_id, gen + 1, parent_bin)
                         ms_bins.append(parent_bin)
+
+                    if config['interactive_mode'] == 'on':
+                        print('The following bins contain parents for the preceding generation:')
+                        for some_bin in ms_bins:
+                            print('\t{}'.format(some_bin))
+                        input('Press Enter to begin calculating new mutation strength(s) :')
+                        counter = 1
+                        for some_bin in ms_bins:
+                            print('\nCalculating strength for bin :\t{}'.format(some_bin))
+                            print('Bin {} / {}'.format(counter, len(ms_bins)))
+                            calculate_mutation_strength(run_id, gen + 1, parent_bin)
+                            input('Press Enter to continue :')
+
+
             else:
                 # delete excess rows
                 # session.delete(material)
