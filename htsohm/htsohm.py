@@ -481,6 +481,7 @@ def worker_run_loop(run_id):
                                     Material.retest_passed != False,
                                     Material.generation_index < config['children_per_generation']) \
                                 .distinct().all()
+                                .all()
                         all_accessed_bins = [ [e[0], e[1], e[2]]
                                 for e in all_accessed_bin_tuples]
                         print_block('ANNEALING WITH MUTATION STRENGTH :\t{}' \
