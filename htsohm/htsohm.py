@@ -2,6 +2,7 @@ import os
 import sys
 from math import sqrt
 from datetime import datetime
+import ast
 
 import numpy as np
 from sqlalchemy.sql import func, or_
@@ -470,7 +471,7 @@ def worker_run_loop(run_id):
                             ms_bins.append(parent_material.bin)
                     # annealing to reset all mutation strengths to initial value
                     else:
-                        all_accessed_bin_tuples = session \
+                        all_accessed_bin_strings = session \
                                 .query(func.distinct(
                                     Material.gas_adsorption_bin,
                                     Material.surface_area_bin,
@@ -480,14 +481,16 @@ def worker_run_loop(run_id):
                                     Material.retest_passed != False,
                                     Material.generation_index < config['children_per_generation']) \
                                 .all()
-                        all_accessed_bins = [[int(e[0][1]), int(e[0][3]), int(e[0][5])] 
-                            for e in all_accessed_bin_tuples]
+                        all_accessed_bin_tuples = [ast.literal_eval(e[0])
+                                for e in all_accessed_bin_strings]
+                        all_accessed_bins = [ [e[0], e[1], e[2]]
+                                for e in all_accessed_bin_tuples]
                         print_block('ANNEALING WITH MUTATION STRENGTH :\t{}' \
                                 .format(config['initial_mutation_strength']))
                         for some_bin in all_accessed_bins:
                             print('Annealing bin :\t{}'.format(some_bin))
                             mutation_strength = MutationStrength(run_id, gen + 1, *some_bin)
-                            mutation_strength.strength = config['initial_mutation_strength']
+                            mutation_strength.strength = config['annealing_strength']
                             session.add(mutation_strength)
             else:
                 # delete excess rows
